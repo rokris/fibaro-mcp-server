@@ -19,7 +19,7 @@ dotenv.config();
 
 // Check for version flag
 if (process.argv.includes('--version') || process.argv.includes('-v')) {
-  console.log('1.0.7');
+  console.log('1.0.8');
   process.exit(0);
 }
 
