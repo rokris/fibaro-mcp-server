@@ -1,0 +1,42 @@
+# Exclude source files (only dist/ is needed)
+src/
+*.ts
+!*.d.ts
+
+# Exclude development files
+tsconfig.json
+.env
+.env.*
+!.env.example
+
+# Exclude test files
+test.ts
+*.test.ts
+*.spec.ts
+__tests__/
+
+# Exclude build artifacts
+*.tsbuildinfo
+.DS_Store
+*.log
+npm-debug.log*
+
+# Exclude git files
+.git
+.gitignore
+.gitattributes
+
+# Exclude editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Exclude CI/CD files
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Exclude documentation source (keep compiled README)
+docs/
+*.draft.md

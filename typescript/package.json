@@ -1,0 +1,58 @@
+{
+  "name": "fibaro-mcp-server",
+  "version": "1.0.1",
+  "description": "Model Context Protocol server for Fibaro Home Center 2 integration with AI assistants",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "fibaro-mcp-server": "dist/index.js"
+  },
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "CLAUDE_CONFIG.md",
+    "VSCODE_CONFIG.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "fibaro",
+    "home-center",
+    "home-automation",
+    "smart-home",
+    "z-wave",
+    "iot",
+    "ai",
+    "claude",
+    "copilot"
+  ],
+  "author": "Roger Kristiansen <rokris@hotmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rokris/fibaro-mcp-server.git"
+  },
+  "homepage": "https://github.com/rokris/fibaro-mcp-server#readme",
+  "bugs": {
+    "url": "https://github.com/rokris/fibaro-mcp-server/issues"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
