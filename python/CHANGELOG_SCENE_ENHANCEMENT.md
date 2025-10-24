@@ -43,7 +43,6 @@ Endringene ble gjort i:
 - `fibaro_mcp/server.py` - Utvidet `get_scene` håndteringen
 - `README.md` - Oppdatert dokumentasjon
 - `EXAMPLES.md` - Lagt til nye eksempler
-- `CLAUDE_CONFIG.md` - Oppdatert verifikasjonseksempler
 
 ### Testing
 

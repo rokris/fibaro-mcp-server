@@ -9,7 +9,6 @@ This package contains everything needed to run the Fibaro MCP Server.
 - `package.json` - Package configuration
 - `.env.example` - Configuration template
 - `README.md` - Documentation
-- `CLAUDE_CONFIG.md` - Claude Desktop setup
 - `VSCODE_CONFIG.md` - VS Code setup
 
 ## Quick Start
@@ -30,8 +29,7 @@ This package contains everything needed to run the Fibaro MCP Server.
    node dist/index.js
    ```
 
-4. **Configure with Claude Desktop or VS Code:**
-   - For Claude Desktop: See CLAUDE_CONFIG.md
+4. **Configure with VS Code:**
    - For VS Code: See VSCODE_CONFIG.md
 
 ## Configuration

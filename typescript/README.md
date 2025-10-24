@@ -10,6 +10,12 @@ TypeScript/Node.js implementasjon av Model Context Protocol (MCP) server for Fib
 - 📊 Hent enhetsinformasjon og status
 - 🔧 Oppdater enhetsparametere
 - 🌍 Globale variabler
+- 🔍 Systemdiagnostikk (minne, lagring, CPU)
+- 👥 Brukeradministrasjon
+- 📂 Seksjonsadministrasjon
+- ⚡ Energiforbruksovervåkning
+- 🌡️ Temperaturdata
+- 📍 Lokasjonsinformasjon
 
 ## Installasjon
 

@@ -168,7 +168,71 @@ export class FibaroClient {
    * Get weather information
    */
   async getWeather(): Promise<any> {
-    const response = await this.client.get('/panels/weather');
+    const response = await this.client.get('/weather');
+    return response.data;
+  }
+
+  /**
+   * Get location information
+   */
+  async getLocation(): Promise<any> {
+    const response = await this.client.get('/panels/location');
+    return response.data;
+  }
+
+  /**
+   * Get system diagnostics
+   */
+  async getDiagnostics(): Promise<any> {
+    const response = await this.client.get('/diagnostics');
+    return response.data;
+  }
+
+  /**
+   * Get all users
+   */
+  async getUsers(): Promise<any[]> {
+    const response = await this.client.get('/users');
+    return response.data;
+  }
+
+  /**
+   * Get specific user by ID
+   */
+  async getUser(userId: number): Promise<any> {
+    const response = await this.client.get(`/users/${userId}`);
+    return response.data;
+  }
+
+  /**
+   * Get all sections
+   */
+  async getSections(): Promise<any[]> {
+    const response = await this.client.get('/sections');
+    return response.data;
+  }
+
+  /**
+   * Get specific section by ID
+   */
+  async getSection(sectionId: number): Promise<any> {
+    const response = await this.client.get(`/sections/${sectionId}`);
+    return response.data;
+  }
+
+  /**
+   * Get energy consumption
+   */
+  async getEnergy(type: string, id: number): Promise<any> {
+    const response = await this.client.get(`/panels/energy?type=${type}&id=${id}`);
+    return response.data;
+  }
+
+  /**
+   * Get temperature data
+   */
+  async getTemperaturePanel(type: string, method: string, id: number): Promise<any> {
+    const response = await this.client.get(`/panels/temperature?type=${type}&method=${method}&id=${id}`);
     return response.data;
   }
 

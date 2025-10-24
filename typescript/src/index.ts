@@ -17,6 +17,12 @@ import { FibaroClient } from './fibaro-client.js';
 // Load environment variables
 dotenv.config();
 
+// Check for version flag
+if (process.argv.includes('--version') || process.argv.includes('-v')) {
+  console.log('1.0.7');
+  process.exit(0);
+}
+
 // Get configuration from environment
 const fibaroUrl = process.env.FIBARO_URL || process.env.FIBARO_HOST || '';
 const fibaroUsername = process.env.FIBARO_USERNAME || '';
@@ -193,6 +199,106 @@ const tools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {},
+    },
+  },
+  {
+    name: 'get_location',
+    description: 'Get location information from Fibaro system',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+    },
+  },
+  {
+    name: 'get_diagnostics',
+    description: 'Get system diagnostics from Fibaro system',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+    },
+  },
+  {
+    name: 'list_users',
+    description: 'List all users in Fibaro system',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+    },
+  },
+  {
+    name: 'get_user',
+    description: 'Get a specific user by ID',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        user_id: {
+          type: 'number',
+          description: 'User ID',
+        },
+      },
+      required: ['user_id'],
+    },
+  },
+  {
+    name: 'list_sections',
+    description: 'List all sections in Fibaro system',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+    },
+  },
+  {
+    name: 'get_section',
+    description: 'Get a specific section by ID',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        section_id: {
+          type: 'number',
+          description: 'Section ID',
+        },
+      },
+      required: ['section_id'],
+    },
+  },
+  {
+    name: 'get_energy',
+    description: 'Get energy consumption for rooms or devices',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        type: {
+          type: 'string',
+          description: 'Type: rooms or devices',
+        },
+        id: {
+          type: 'number',
+          description: 'ID of room or device',
+        },
+      },
+      required: ['type', 'id'],
+    },
+  },
+  {
+    name: 'get_temperature_panel',
+    description: 'Get temperature data for rooms or devices',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        type: {
+          type: 'string',
+          description: 'Type: rooms or devices',
+        },
+        method: {
+          type: 'string',
+          description: 'Method: single or compare',
+        },
+        id: {
+          type: 'number',
+          description: 'ID of room or device',
+        },
+      },
+      required: ['type', 'method', 'id'],
     },
   },
   // Global variables tools
@@ -446,6 +552,102 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           {
             type: 'text',
             text: `Weather Information:\n${JSON.stringify(weather, null, 2)}`,
+          },
+        ],
+      };
+    }
+
+    if (name === 'get_location') {
+      const location = await fibaroClient.getLocation();
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Location Information:\n${JSON.stringify(location, null, 2)}`,
+          },
+        ],
+      };
+    }
+
+    if (name === 'get_diagnostics') {
+      const diagnostics = await fibaroClient.getDiagnostics();
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Diagnostics Information:\n${JSON.stringify(diagnostics, null, 2)}`,
+          },
+        ],
+      };
+    }
+
+    if (name === 'list_users') {
+      const users = await fibaroClient.getUsers();
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Found ${users.length} users:\n\n${users.map((u) => `- ID: ${u.id}, Name: ${u.name}, Email: ${u.email}`).join('\n')}`,
+          },
+        ],
+      };
+    }
+
+    if (name === 'get_user') {
+      const user = await fibaroClient.getUser(args.user_id as number);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `User Information:\nID: ${user.id}\nName: ${user.name}\nEmail: ${user.email}\nType: ${user.type}\nHas GPS: ${user.hasGPS}`,
+          },
+        ],
+      };
+    }
+
+    if (name === 'list_sections') {
+      const sections = await fibaroClient.getSections();
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Found ${sections.length} sections:\n\n${sections.map((s) => `- ID: ${s.id}, Name: ${s.name}`).join('\n')}`,
+          },
+        ],
+      };
+    }
+
+    if (name === 'get_section') {
+      const section = await fibaroClient.getSection(args.section_id as number);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Section Information:\nID: ${section.id}\nName: ${section.name}\nSort Order: ${section.sortOrder}`,
+          },
+        ],
+      };
+    }
+
+    if (name === 'get_energy') {
+      const energy = await fibaroClient.getEnergy(args.type as string, args.id as number);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Energy Information:\n${JSON.stringify(energy, null, 2)}`,
+          },
+        ],
+      };
+    }
+
+    if (name === 'get_temperature_panel') {
+      const temperature = await fibaroClient.getTemperaturePanel(args.type as string, args.method as string, args.id as number);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Temperature Information:\n${JSON.stringify(temperature, null, 2)}`,
           },
         ],
       };

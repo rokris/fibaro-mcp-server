@@ -115,4 +115,3 @@ GitHub Copilot vil da bruke MCP serveren til å kommunisere med din Fibaro Home 
 
 - [README.md](README.md) - Hovedoversikt over prosjektet
 - [EXAMPLES.md](EXAMPLES.md) - Eksempler på bruk
-- [CLAUDE_CONFIG.md](CLAUDE_CONFIG.md) - Konfigurasjon for Claude Desktop

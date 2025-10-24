@@ -20,6 +20,11 @@ from .fibaro_client import FibaroClient
 # Load environment variables
 load_dotenv()
 
+# Check for version flag
+if '--version' in os.sys.argv or '-v' in os.sys.argv:
+    print("0.1.0")
+    os.sys.exit(0)
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -208,6 +213,106 @@ async def list_tools() -> list[Tool]:
             inputSchema={
                 "type": "object",
                 "properties": {},
+            },
+        ),
+        Tool(
+            name="get_location",
+            description="Get location information from Fibaro system",
+            inputSchema={
+                "type": "object",
+                "properties": {},
+            },
+        ),
+        Tool(
+            name="get_diagnostics",
+            description="Get system diagnostics from Fibaro system",
+            inputSchema={
+                "type": "object",
+                "properties": {},
+            },
+        ),
+        Tool(
+            name="list_users",
+            description="List all users in Fibaro system",
+            inputSchema={
+                "type": "object",
+                "properties": {},
+            },
+        ),
+        Tool(
+            name="get_user",
+            description="Get a specific user by ID",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "user_id": {
+                        "type": "integer",
+                        "description": "User ID",
+                    }
+                },
+                "required": ["user_id"],
+            },
+        ),
+        Tool(
+            name="list_sections",
+            description="List all sections in Fibaro system",
+            inputSchema={
+                "type": "object",
+                "properties": {},
+            },
+        ),
+        Tool(
+            name="get_section",
+            description="Get a specific section by ID",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "section_id": {
+                        "type": "integer",
+                        "description": "Section ID",
+                    }
+                },
+                "required": ["section_id"],
+            },
+        ),
+        Tool(
+            name="get_energy",
+            description="Get energy consumption for rooms or devices",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "description": "Type: 'rooms' or 'devices'",
+                    },
+                    "id": {
+                        "type": "integer",
+                        "description": "ID of room or device",
+                    }
+                },
+                "required": ["type", "id"],
+            },
+        ),
+        Tool(
+            name="get_temperature_panel",
+            description="Get temperature data for rooms or devices",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "description": "Type: 'rooms' or 'devices'",
+                    },
+                    "method": {
+                        "type": "string",
+                        "description": "Method: 'single' or 'compare'",
+                    },
+                    "id": {
+                        "type": "integer",
+                        "description": "ID of room or device",
+                    }
+                },
+                "required": ["type", "method", "id"],
             },
         ),
         # Variable tools
@@ -430,6 +535,74 @@ async def call_tool(name: str, arguments: Any) -> list[TextContent]:
         elif name == "get_weather":
             weather = await client.get_weather()
             return [TextContent(type="text", text=f"Weather Information:\n{weather}")]
+
+        elif name == "get_location":
+            location = await client.get_location()
+            return [TextContent(type="text", text=f"Location Information:\n{location}")]
+
+        elif name == "get_diagnostics":
+            diagnostics = await client.get_diagnostics()
+            return [TextContent(type="text", text=f"Diagnostics Information:\n{diagnostics}")]
+
+        elif name == "list_users":
+            users = await client.get_users()
+            return [
+                TextContent(
+                    type="text",
+                    text=f"Found {len(users)} users:\n\n"
+                    + "\n".join(
+                        f"- ID: {u.get('id')}, Name: {u.get('name', 'Unknown')}, Email: {u.get('email', 'N/A')}"
+                        for u in users
+                    ),
+                )
+            ]
+
+        elif name == "get_user":
+            user = await client.get_user(arguments["user_id"])
+            return [
+                TextContent(
+                    type="text",
+                    text=f"User Information:\n"
+                    f"ID: {user.get('id')}\n"
+                    f"Name: {user.get('name')}\n"
+                    f"Email: {user.get('email')}\n"
+                    f"Type: {user.get('type')}\n"
+                    f"Has GPS: {user.get('hasGPS')}",
+                )
+            ]
+
+        elif name == "list_sections":
+            sections = await client.get_sections()
+            return [
+                TextContent(
+                    type="text",
+                    text=f"Found {len(sections)} sections:\n\n"
+                    + "\n".join(
+                        f"- ID: {s.get('id')}, Name: {s.get('name', 'Unknown')}"
+                        for s in sections
+                    ),
+                )
+            ]
+
+        elif name == "get_section":
+            section = await client.get_section(arguments["section_id"])
+            return [
+                TextContent(
+                    type="text",
+                    text=f"Section Information:\n"
+                    f"ID: {section.get('id')}\n"
+                    f"Name: {section.get('name')}\n"
+                    f"Sort Order: {section.get('sortOrder')}",
+                )
+            ]
+
+        elif name == "get_energy":
+            energy = await client.get_energy(arguments["type"], arguments["id"])
+            return [TextContent(type="text", text=f"Energy Information:\n{energy}")]
+
+        elif name == "get_temperature_panel":
+            temperature = await client.get_temperature_panel(arguments["type"], arguments["method"], arguments["id"])
+            return [TextContent(type="text", text=f"Temperature Information:\n{temperature}")]
 
         # Variable tools
         elif name == "list_global_variables":

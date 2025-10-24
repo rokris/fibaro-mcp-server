@@ -2,6 +2,21 @@
 
 En Model Context Protocol (MCP) server for integrasjon med Fibaro Home Center 2, skrevet i Python.
 
+## Funksjoner
+
+- 📱 List og kontroller enheter (devices)
+- 🏠 Administrer rom (rooms)
+- 🎬 Trigger scener (scenes) med full LUA-kode support
+- 📊 Hent enhetsinformasjon og status
+- 🔧 Oppdater enhetsparametere
+- 🌍 Globale variabler
+- 🔍 Systemdiagnostikk (minne, lagring, CPU)
+- 👥 Brukeradministrasjon
+- 📂 Seksjonsadministrasjon
+- ⚡ Energiforbruksovervåkning
+- 🌡️ Temperaturdata
+- 📍 Lokasjonsinformasjon
+
 ## Installasjon
 
 ```bash
@@ -33,10 +48,6 @@ FIBARO_PASSWORD=your_password
 ```bash
 python -m fibaro_mcp.server
 ```
-
-### Integrasjon med Claude Desktop
-
-Se [../CLAUDE_CONFIG.md](../CLAUDE_CONFIG.md) for Claude Desktop konfigurasjon.
 
 ### Integrasjon med VS Code
 

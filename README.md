@@ -36,6 +36,12 @@ npx fibaro-mcp-server
 - 📊 Hent enhetsinformasjon og status
 - 🔧 Oppdater enhetsparametere
 - 🌍 Administrer globale variabler
+- 🔍 Systemdiagnostikk (minne, lagring, CPU)
+- 👥 Brukeradministrasjon
+- 📂 Seksjonsadministrasjon
+- ⚡ Energiforbruksovervåkning
+- 🌡️ Temperaturdata
+- 📍 Lokasjonsinformasjon
 
 ## Prosjektstruktur
 

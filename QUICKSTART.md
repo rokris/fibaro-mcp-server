@@ -25,19 +25,6 @@ node dist/test.js
 npm start
 ```
 
-**Claude Desktop konfigurasjon:**
-```json
-{
-  "mcpServers": {
-    "fibaro": {
-      "command": "node",
-      "args": ["/full/path/to/fibaro-mcp-server/typescript/dist/index.js"],
-      "cwd": "/full/path/to/fibaro-mcp-server/typescript"
-    }
-  }
-}
-```
-
 ### 🐍 Python (For Python-brukere)
 
 **Fordeler:** Enkel pip-installasjon, Python syntaks
@@ -56,19 +43,6 @@ python test_server.py
 
 # 4. Kjør
 python -m fibaro_mcp.server
-```
-
-**Claude Desktop konfigurasjon:**
-```json
-{
-  "mcpServers": {
-    "fibaro": {
-      "command": "python",
-      "args": ["-m", "fibaro_mcp.server"],
-      "cwd": "/full/path/to/fibaro-mcp"
-    }
-  }
-}
 ```
 
 ## .env Konfigurasjon

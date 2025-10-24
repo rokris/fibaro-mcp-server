@@ -167,7 +167,39 @@ class FibaroClient:
 
     async def get_weather(self) -> dict:
         """Get weather information."""
-        return await self._get("panels/weather")
+        return await self._get("api/weather")
+
+    async def get_location(self) -> dict:
+        """Get location information."""
+        return await self._get("api/panels/location")
+
+    async def get_diagnostics(self) -> dict:
+        """Get system diagnostics."""
+        return await self._get("diagnostics")
+
+    async def get_users(self) -> list[dict]:
+        """Get all users."""
+        return await self._get("users")
+
+    async def get_user(self, user_id: int) -> dict:
+        """Get specific user by ID."""
+        return await self._get(f"users/{user_id}")
+
+    async def get_sections(self) -> list[dict]:
+        """Get all sections."""
+        return await self._get("sections")
+
+    async def get_section(self, section_id: int) -> dict:
+        """Get specific section by ID."""
+        return await self._get(f"sections/{section_id}")
+
+    async def get_energy(self, type_: str, id_: int) -> dict:
+        """Get energy consumption for rooms/devices."""
+        return await self._get(f"panels/energy?type={type_}&id={id_}")
+
+    async def get_temperature_panel(self, type_: str, method: str, id_: int) -> dict:
+        """Get temperature data for rooms/devices."""
+        return await self._get(f"panels/temperature?type={type_}&method={method}&id={id_}")
 
     # Variables endpoints
     async def get_global_variables(self) -> list[dict]:
