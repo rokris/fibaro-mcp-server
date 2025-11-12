@@ -2,13 +2,11 @@
 
 En Model Context Protocol (MCP) server for integrasjon med Fibaro Home Center 2.
 
+Bygget med **TypeScript/Node.js** for moderne npx-støtte og enkel installasjon.
+
 <a href="https://insiders.vscode.dev/redirect/mcp/install?name=fibaro&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22fibaro-mcp-server%22%5D%2C%22env%22%3A%7B%22FIBARO_URL%22%3A%22%24%7Binput%3Afibaro_url%7D%22%2C%22FIBARO_USERNAME%22%3A%22%24%7Binput%3Afibaro_username%7D%22%2C%22FIBARO_PASSWORD%22%3A%22%24%7Binput%3Afibaro_password%7D%22%7D%7D&inputs=%5B%7B%22id%22%3A%22fibaro_url%22%2C%22type%22%3A%22promptString%22%2C%22description%22%3A%22Fibaro%20Home%20Center%202%20URL%20(e.g.%20http%3A%2F%2F192.168.1.100)%22%7D%2C%7B%22id%22%3A%22fibaro_username%22%2C%22type%22%3A%22promptString%22%2C%22description%22%3A%22Fibaro%20username%22%7D%2C%7B%22id%22%3A%22fibaro_password%22%2C%22type%22%3A%22promptString%22%2C%22description%22%3A%22Fibaro%20password%22%2C%22password%22%3Atrue%7D%5D">
   <img src="https://img.shields.io/badge/Install-Fibaro%20MCP%20Server-blue?style=for-the-badge&logo=visual-studio-code" alt="Install Fibaro MCP Server" />
 </a>
-
-Tilgjengelig i **to versjoner**:
-- 🐍 **Python** - Enkel pip-installasjon, perfekt for Python-brukere
-- 📘 **TypeScript/Node.js** - Moderne npx-støtte, ingen pip nødvendig
 
 ## 🚀 Rask installasjon
 
@@ -48,37 +46,17 @@ npx fibaro-mcp-server
 
 ```
 fibaro-mcp-server/
-├── python/          # Python-implementasjon
-│   ├── fibaro_mcp/  # Python-pakke
-│   ├── tests/       # Unit tests
-│   └── pyproject.toml
-├── typescript/      # TypeScript-implementasjon
+├── typescript/      # TypeScript-implementasjon (hoved-kode)
 │   ├── src/         # TypeScript source
+│   ├── dist/        # Compiled JavaScript
 │   └── package.json
-└── README.md        # Denne filen
+├── CAMERA_ANALYSIS.md  # AI kamera-analyse dokumentasjon
+├── QUICKSTART.md      # 5-minutters oppsettguide
+├── VSCODE_CONFIG.md   # VS Code MCP konfigurasjon
+└── README.md          # Denne filen
 ```
 
-## Velg din versjon
-
-### Python-versjon
-
-Se [python/README.md](python/README.md) for detaljert dokumentasjon.
-
-**Rask start:**
-```bash
-cd python
-pip install -e .
-# Konfigurer i ~/.vscode/mcp.json (se VSCODE_CONFIG.md)
-```
-
-**Kjør:**
-```bash
-python -m fibaro_mcp.server
-```
-
-[📖 Se full Python dokumentasjon](./python/)
-
-### TypeScript-versjon
+## Installasjon og Konfigurasjon
 
 Se [typescript/README.md](typescript/README.md) for detaljert dokumentasjon.
 
@@ -101,17 +79,28 @@ npm start
 
 **Ny bruker?** → Les [QUICKSTART.md](./QUICKSTART.md) for 5-minutters oppsett! 🚀
 
-1. Klon repositoryet:
+### Via npm/npx
+
 ```bash
-git clone https://github.com/rokris/fibaro-mcp-server.git
-cd fibaro-mcp-server
+# Installer globalt
+npm install -g fibaro-mcp-server
+
+# Eller kjør direkte med npx (ingen installasjon nødvendig)
+npx fibaro-mcp-server
 ```
 
-2. Velg din foretrukne versjon (Python eller TypeScript) og følg instruksjonene over.
+### Fra source
+
+```bash
+git clone https://github.com/rokris/fibaro-mcp-server.git
+cd fibaro-mcp-server/typescript
+npm install
+npm run build
+```
 
 ## Konfigurering
 
-All konfigurasjon skjer via `~/.vscode/mcp.json`. Dette prosjektet bruker ikke `.env`-filer.
+All konfigurasjon skjer via `~/.vscode/mcp.json` eller GitHub Copilot settings. Dette prosjektet bruker ikke `.env`-filer.
 
 Se [VSCODE_CONFIG.md](./VSCODE_CONFIG.md) for detaljert konfigurering av MCP-server i VS Code.
 
@@ -120,7 +109,11 @@ Se [VSCODE_CONFIG.md](./VSCODE_CONFIG.md) for detaljert konfigurering av MCP-ser
 ### Kjør serveren
 
 ```bash
-python -m fibaro_mcp.server
+# Via npx
+npx fibaro-mcp-server
+
+# Eller hvis installert globalt
+fibaro-mcp-server
 ```
 
 ### MCP Tools

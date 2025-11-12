@@ -2,83 +2,73 @@
 
 Kom i gang med Fibaro MCP Server på under 5 minutter!
 
-## Velg din versjon
+## Installasjon
 
-### 🚀 TypeScript (Anbefalt for nye brukere)
-
-**Fordeler:** Rask, moderne, type-safe, kan kjøres via npx
+### Via npm/npx (Raskeste måten)
 
 ```bash
-# 1. Installer
-cd fibaro-mcp-server/typescript
-npm install
-npm run build
+# Kjør direkte uten installasjon
+npx fibaro-mcp-server
 
-# 2. Konfigurer i ~/.vscode/mcp.json (se VSCODE_CONFIG.md)
-
-# 3. Test
-node dist/test.js
-
-# 4. Start MCP server via VS Code GitHub Copilot
+# Eller installer globalt
+npm install -g fibaro-mcp-server
+fibaro-mcp-server
 ```
 
-### 🐍 Python (For Python-brukere)
-
-**Fordeler:** Enkel pip-installasjon, Python syntaks
+### Fra source
 
 ```bash
-# 1. Installer
-cd fibaro-mcp-server/python
-pip install -e .
+# 1. Klon repository
+git clone https://github.com/rokris/fibaro-mcp-server.git
+cd fibaro-mcp-server/typescript
 
-# 2. Konfigurer i ~/.vscode/mcp.json (se VSCODE_CONFIG.md)
+# 2. Installer dependencies
+npm install
 
-# 3. Test
-python test_server.py
+# 3. Bygg
+npm run build
 
-# 4. Start MCP server via VS Code GitHub Copilot
+# 4. Test
+node dist/test.js
 ```
 
 ## Konfigurasjon
 
-All konfigurasjon skjer via `~/.vscode/mcp.json`. Se [VSCODE_CONFIG.md](VSCODE_CONFIG.md) for detaljer.
+All konfigurasjon skjer via GitHub Copilot settings eller `~/.vscode/mcp.json`. Se [VSCODE_CONFIG.md](VSCODE_CONFIG.md) for detaljer.
 
-Eksempel konfigurasjon:
+Eksempel konfigurasjon for GitHub Copilot (`~/Library/Application Support/Code/User/settings.json`):
 
 ```json
 {
-  "mcpServers": {
-    "fibaro-home-center": {
-      "command": "python",
-      "args": ["-m", "fibaro_mcp.server"],
+  "github.copilot.chat.mcp.servers": {
+    "fibaro": {
+      "command": "npx",
+      "args": ["-y", "fibaro-mcp-server"],
       "env": {
-        "FIBARO_URL": "http://192.168.1.100",
+        "FIBARO_HOST": "192.168.1.100",
         "FIBARO_USERNAME": "admin",
-        "FIBARO_PASSWORD": "your_password"
+        "FIBARO_PASSWORD": "your_password",
+        "FIBARO_USE_HTTPS": "false"
       }
     }
   }
 }
+}
 ```
 
 Erstatt med dine verdier:
-- `FIBARO_URL` - Full URL til din Fibaro Home Center 2 (f.eks. `http://192.168.1.100` eller `https://192.168.1.100`)
+- `FIBARO_HOST` - IP-adresse til din Fibaro Home Center 2 (f.eks. `192.168.1.100`)
 - `FIBARO_USERNAME` - Administrator brukernavn
 - `FIBARO_PASSWORD` - Administrator passord
+- `FIBARO_USE_HTTPS` - Sett til `"true"` hvis du bruker HTTPS
 
 ## Test at det fungerer
 
 ### Fra terminalen
 
-**TypeScript:**
 ```bash
 cd typescript
 node dist/test.js
-```
-
-**Python:**
-```bash
-python test_server.py
 ```
 
 Du skal se output som:
@@ -91,9 +81,9 @@ Du skal se output som:
 ✅ Found xx scenes
 ```
 
-### I Claude Desktop / VS Code
+### I VS Code med GitHub Copilot
 
-Restart applikasjonen og spør:
+Restart VS Code og spør i Copilot chat:
 
 ```
 List alle enheter i mitt Fibaro system
@@ -107,14 +97,14 @@ Vis meg alle rom
 
 ## Neste steg
 
-
 - 💻 Se [VSCODE_CONFIG.md](./VSCODE_CONFIG.md) for VS Code konfigurasjon
-- 📘 Les [typescript/README.md](./typescript/README.md) for TypeScript-spesifikk dokumentasjon
+- � Se [CAMERA_ANALYSIS.md](./CAMERA_ANALYSIS.md) for kamera AI-analyse
+- 📦 Se [typescript/README.md](./typescript/README.md) for utvikler-dokumentasjon
 
 ## Vanlige problemer
 
 ### "Cannot connect to Fibaro"
-- Sjekk at FIBARO_URL er riktig (inkludert `http://` eller `https://`)
+- Sjekk at FIBARO_HOST er riktig IP-adresse
 - Verifiser at Fibaro HC2 er på nettverket
 - Test i nettleser: `http://192.168.x.x/api/settings/info`
 
@@ -122,13 +112,10 @@ Vis meg alle rom
 - Sjekk brukernavn og passord
 - Sørg for at brukeren har admin-rettigheter i Fibaro
 
-### "Module not found" (TypeScript)
-- Kjør `npm install` på nytt
+### "Module not found"
+- Kjør `npm install` på nytt i `typescript/` mappen
 - Slett `node_modules/` og kjør `npm install` igjen
-
-### "No module named 'httpx'" (Python)
-- Kjør `pip install -e .` på nytt
-- Sørg for at du er i riktig directory
+- Hvis du bruker npx, kjør `npx -y fibaro-mcp-server` for å force reinstall
 
 ## Hjelp og support
 
@@ -138,4 +125,5 @@ Vis meg alle rom
 
 ## Gratulerer! 🎉
 
-Du har nå en fullstendig fungerende Fibaro MCP Server som kan kontrollere hjemmet ditt via Claude eller GitHub Copilot!
+Du har nå en fullstendig fungerende Fibaro MCP Server som kan kontrollere hjemmet ditt via GitHub Copilot!
+

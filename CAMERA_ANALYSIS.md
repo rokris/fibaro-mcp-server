@@ -1,6 +1,6 @@
 # Camera Analysis with Ollama Vision
 
-The Fibaro MCP server now includes integrated AI vision analysis for IP cameras using local Ollama models.
+The Fibaro MCP server includes integrated AI vision analysis for IP cameras using local Ollama models.
 
 ## Features
 
@@ -29,46 +29,41 @@ The Fibaro MCP server now includes integrated AI vision analysis for IP cameras 
    ollama pull llava
    ```
 
+3. **Fibaro MCP Server configured**
+   - See [VSCODE_CONFIG.md](VSCODE_CONFIG.md) for setup
+   - Ensure server is running with proper camera credentials
+
 ## Usage
 
-### Via MCP Tool
+### Via GitHub Copilot Chat
 
-The `analyze_camera_snapshot` tool is available in the Fibaro MCP server:
+The `analyze_camera_snapshot` tool is available through the Fibaro MCP server:
 
 **Parameters:**
 - `device_id` (required): The camera device ID from your Fibaro system
 - `prompt` (optional): Custom prompt for the vision model
 - `model` (optional): Ollama model name (default: `llama3.2-vision`)
 
-**Example queries:**
+**Example queries in Copilot:**
 - "Analyze camera 87" (Garasjekamera)
 - "What do you see on camera 342?" (Hagekamera)
 - "Check camera 176 for any people" (Terrassekamera)
 - "Describe the scene at camera 341" (Inngangskamera)
 
-### Via Standalone Script
+### Via Standalone Test Script
 
-You can also use the standalone Python script directly:
+You can test camera analysis directly:
 
 ```bash
-# Basic analysis
-python analyze_camera_with_ollama.py snapshot.jpg
-
-# Custom prompt
-python analyze_camera_with_ollama.py snapshot.jpg -p "Are there any people in this image?"
-
-# Different model
-python analyze_camera_with_ollama.py snapshot.jpg -m llava
-
-# Check Ollama status
-python analyze_camera_with_ollama.py --check-status
+cd typescript
+node test-camera.js
 ```
 
 ## Configuration
 
 ### Ollama URL
 
-The default Ollama URL is `http://localhost:11434`. If you need to use a different URL, you can modify it in the `server.py` file.
+The default Ollama URL is `http://localhost:11434`. This is configured in the TypeScript server code.
 
 ### Camera Requirements
 
@@ -91,32 +86,32 @@ The camera device must have the following properties configured in Fibaro:
 
 ```
 User: "Check the entrance camera for any visitors"
-AI: [Fetches snapshot from camera 341, analyzes with Ollama]
-     "Camera Analysis shows the entrance area with good lighting.
-     No people visible. The path is clear with some landscaping
-     visible on both sides..."
+Copilot: [Fetches snapshot from camera 341, analyzes with Ollama]
+         "Camera Analysis shows the entrance area with good lighting.
+         No people visible. The path is clear with some landscaping
+         visible on both sides..."
 ```
 
 ### Example 2: Weather assessment
 
 ```
 User: "What's the weather like according to the garden camera?"
-AI: [Analyzes camera 342]
-     "The image shows an overcast November day with gray skies.
-     Autumn foliage is visible with reddish-brown bushes. No
-     precipitation visible. Temperature appears cool based on
-     the lighting conditions..."
+Copilot: [Analyzes camera 342]
+         "The image shows an overcast November day with gray skies.
+         Autumn foliage is visible with reddish-brown bushes. No
+         precipitation visible. Temperature appears cool based on
+         the lighting conditions..."
 ```
 
 ### Example 3: Security check
 
 ```
 User: "Check all cameras for any unusual activity"
-AI: [Analyzes all camera devices sequentially]
-     "Camera 87 (Garage): Normal, no activity detected...
-      Camera 176 (Terrace): Clear view, no movement...
-      Camera 341 (Entrance): Pathway clear, no visitors...
-      Camera 342 (Garden): Peaceful scene, no unusual activity..."
+Copilot: [Analyzes all camera devices sequentially]
+         "Camera 87 (Garage): Normal, no activity detected...
+          Camera 176 (Terrace): Clear view, no movement...
+          Camera 341 (Entrance): Pathway clear, no visitors...
+          Camera 342 (Garden): Peaceful scene, no unusual activity..."
 ```
 
 ## Troubleshooting
@@ -162,46 +157,42 @@ AI: [Analyzes all camera devices sequentially]
 
 Tailor the analysis to specific needs:
 
-```python
-# Look for specific objects
-"Is there a car parked in the driveway?"
+- "Is there a car parked in the driveway?"
+- "How many people are visible in this image?"
+- "Describe the condition of the garden plants"
+- "Is the gate open or closed?"
+- "Based on the lighting, what time of day does this appear to be?"
 
-# Count items
-"How many people are visible in this image?"
+### Integration with TypeScript/Node.js
 
-# Describe specific areas
-"Describe the condition of the garden plants"
+```typescript
+import axios from 'axios';
 
-# Safety checks
-"Is the gate open or closed?"
-
-# Time-based questions
-"Based on the lighting, what time of day does this appear to be?"
+async function analyzeCameraSnapshot(
+  cameraUrl: string,
+  username: string,
+  password: string,
+  prompt: string = "Describe this image in detail"
+): Promise<string> {
+  // Fetch snapshot
+  const snapshotResponse = await axios.get(cameraUrl, {
+    auth: { username, password },
+    responseType: 'arraybuffer'
+  });
+  
+  const base64Image = Buffer.from(snapshotResponse.data).toString('base64');
+  
+  // Send to Ollama
+  const ollamaResponse = await axios.post('http://localhost:11434/api/generate', {
+    model: 'llama3.2-vision',
+    prompt: prompt,
+    images: [base64Image],
+    stream: false
+  });
+  
+  return ollamaResponse.data.response;
+}
 ```
-
-## Integration Examples
-
-### Automation Script
-
-```python
-import asyncio
-from fibaro_mcp.fibaro_client import FibaroClient
-
-async def check_all_cameras():
-    client = FibaroClient(...)
-    cameras = [87, 176, 341, 342]  # Camera device IDs
-    
-    for camera_id in cameras:
-        # Use analyze_camera_snapshot tool
-        result = await analyze_camera(camera_id)
-        print(f"Camera {camera_id}: {result}")
-
-asyncio.run(check_all_cameras())
-```
-
-### Scheduled Monitoring
-
-Add to your Fibaro scenes or external scheduler to periodically analyze cameras and send notifications if unusual activity is detected.
 
 ## Future Enhancements
 
