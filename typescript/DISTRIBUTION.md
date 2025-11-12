@@ -7,17 +7,14 @@ This package contains everything needed to run the Fibaro MCP Server.
 - `dist/` - Compiled JavaScript files
 - `node_modules/` - Required dependencies
 - `package.json` - Package configuration
-- `.env.example` - Configuration template
 - `README.md` - Documentation
 - `VSCODE_CONFIG.md` - VS Code setup
 
 ## Quick Start
 
-1. **Configure your Fibaro Home Center:**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your Fibaro HC2 details
-   ```
+1. **Configure with VS Code (Recommended):**
+   - All konfigurasjon skjer via `~/.vscode/mcp.json`
+   - Se VSCODE_CONFIG.md for detaljert oppsett
 
 2. **Install dependencies (if not included):**
    ```bash
@@ -34,13 +31,9 @@ This package contains everything needed to run the Fibaro MCP Server.
 
 ## Configuration
 
-Edit `.env` file with your settings:
+All konfigurasjon skjer via `~/.vscode/mcp.json`. Dette prosjektet bruker ikke `.env`-filer.
 
-```bash
-FIBARO_URL=http://192.168.1.100
-FIBARO_USERNAME=admin
-FIBARO_PASSWORD=your_password
-```
+Se VSCODE_CONFIG.md for detaljert konfigurering.
 
 ## Support
 

@@ -14,15 +14,12 @@ cd fibaro-mcp-server/typescript
 npm install
 npm run build
 
-# 2. Konfigurer
-cp .env.example .env
-# Rediger .env med dine Fibaro-detaljer
+# 2. Konfigurer i ~/.vscode/mcp.json (se VSCODE_CONFIG.md)
 
 # 3. Test
 node dist/test.js
 
-# 4. Kjør
-npm start
+# 4. Start MCP server via VS Code GitHub Copilot
 ```
 
 ### 🐍 Python (For Python-brukere)
@@ -34,25 +31,34 @@ npm start
 cd fibaro-mcp-server/python
 pip install -e .
 
-# 2. Konfigurer
-cp .env.example .env
-# Rediger .env med dine Fibaro-detaljer
+# 2. Konfigurer i ~/.vscode/mcp.json (se VSCODE_CONFIG.md)
 
 # 3. Test
 python test_server.py
 
-# 4. Kjør
-python -m fibaro_mcp.server
+# 4. Start MCP server via VS Code GitHub Copilot
 ```
 
-## .env Konfigurasjon
+## Konfigurasjon
 
-Begge versjoner bruker samme `.env` format:
+All konfigurasjon skjer via `~/.vscode/mcp.json`. Se [VSCODE_CONFIG.md](VSCODE_CONFIG.md) for detaljer.
 
-```env
-FIBARO_URL=http://192.168.1.100
-FIBARO_USERNAME=admin
-FIBARO_PASSWORD=your_password
+Eksempel konfigurasjon:
+
+```json
+{
+  "mcpServers": {
+    "fibaro-home-center": {
+      "command": "python",
+      "args": ["-m", "fibaro_mcp.server"],
+      "env": {
+        "FIBARO_URL": "http://192.168.1.100",
+        "FIBARO_USERNAME": "admin",
+        "FIBARO_PASSWORD": "your_password"
+      }
+    }
+  }
+}
 ```
 
 Erstatt med dine verdier:

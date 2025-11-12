@@ -28,21 +28,9 @@ npm install
 
 ### 2. Konfigurer miljøvariabler
 
-Kopier `.env.example` til `.env`:
+All konfigurasjon skjer via `~/.vscode/mcp.json`. Dette prosjektet bruker ikke `.env`-filer.
 
-```bash
-cp .env.example .env
-```
-
-Rediger `.env` med dine Fibaro HC2 detaljer:
-
-```env
-FIBARO_URL=http://192.168.1.100
-FIBARO_USERNAME=admin
-FIBARO_PASSWORD=your_password
-```
-
-**Merk:** Bruk `https://` i URL hvis din Fibaro bruker HTTPS.
+Se [VSCODE_CONFIG.md](./VSCODE_CONFIG.md) for detaljert konfigurering av MCP-server i VS Code.
 
 ### 3. Bygg prosjektet
 

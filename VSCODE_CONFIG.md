@@ -40,32 +40,7 @@ Erstatt følgende verdier med dine egne:
 - `FIBARO_USERNAME` - Brukernavn for Fibaro HC2
 - `FIBARO_PASSWORD` - Passord for Fibaro HC2
 
-## Alternativ med .env fil
-
-Hvis du bruker `.env` fil i prosjektmappen, kan du forenkle konfigurasjonen:
-
-```json
-{
-  "mcpServers": {
-    "fibaro-home-center": {
-      "command": "python",
-      "args": [
-        "-m",
-        "fibaro_mcp.server"
-      ],
-      "cwd": "/full/path/to/fibaro-mcp"
-    }
-  }
-}
-```
-
-Opprett `.env` filen i prosjektmappen (`/full/path/to/fibaro-mcp/.env`):
-
-```env
-FIBARO_URL=http://192.168.1.100
-FIBARO_USERNAME=admin
-FIBARO_PASSWORD=your_password
-```
+> **Note:** All konfigurasjon skjer via `mcp.json`. Dette prosjektet bruker ikke `.env`-filer.
 
 ## Installasjon
 

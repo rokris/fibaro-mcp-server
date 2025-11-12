@@ -66,14 +66,9 @@ python analyze_camera_with_ollama.py --check-status
 
 ## Configuration
 
-### Environment Variables
+### Ollama URL
 
-Add to your `.env` file:
-
-```bash
-# Optional: Custom Ollama URL (default: http://localhost:11434)
-OLLAMA_URL=http://localhost:11434
-```
+The default Ollama URL is `http://localhost:11434`. If you need to use a different URL, you can modify it in the `server.py` file.
 
 ### Camera Requirements
 
@@ -128,7 +123,7 @@ AI: [Analyzes all camera devices sequentially]
 
 ### Error: "Could not connect to Ollama"
 - Ensure Ollama is running: `ollama serve`
-- Check the Ollama URL in your `.env` file
+- Verify Ollama is accessible at `http://localhost:11434`
 - Verify the port is not blocked by firewall
 
 ### Error: "Model not found"

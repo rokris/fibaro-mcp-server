@@ -43,32 +43,9 @@ Erstatt følgende verdier med dine egne:
 - `FIBARO_PASSWORD` - Passord for Fibaro HC2
 - `FIBARO_USE_HTTPS` - Sett til `"true"` hvis du bruker HTTPS
 
-### Alternativ 2: Med .env fil
+**Merk:** Dette prosjektet bruker ikke `.env`-filer. All konfigurasjon skjer via `mcp.json`.
 
-```json
-{
-  "mcpServers": {
-    "fibaro-home-center": {
-      "command": "node",
-      "args": [
-        "/full/path/to/fibaro-mcp/typescript/dist/index.js"
-      ],
-      "cwd": "/full/path/to/fibaro-mcp/typescript"
-    }
-  }
-}
-```
-
-Opprett `.env` filen i `typescript/` mappen:
-
-```env
-FIBARO_HOST=192.168.1.100
-FIBARO_USERNAME=admin
-FIBARO_PASSWORD=your_password
-FIBARO_USE_HTTPS=false
-```
-
-### Alternativ 3: Via npx (etter publisering til npm)
+### Alternativ 2: Via npx (etter publisering til npm)
 
 ```json
 {

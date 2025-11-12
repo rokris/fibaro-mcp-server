@@ -25,21 +25,9 @@ pip install -e .
 
 ## Konfigurering
 
-Opprett en `.env` fil basert på `.env.example`:
+All konfigurasjon skjer via `~/.vscode/mcp.json`. Dette prosjektet bruker ikke `.env`-filer.
 
-```bash
-cp .env.example .env
-```
-
-Rediger `.env` med dine Fibaro HC2 detaljer:
-
-```bash
-FIBARO_URL=http://192.168.1.100
-FIBARO_USERNAME=admin
-FIBARO_PASSWORD=your_password
-```
-
-**Merk:** Bruk `https://` i URL hvis din Fibaro bruker HTTPS.
+Se [VSCODE_CONFIG.md](../VSCODE_CONFIG.md) for detaljert konfigurering av MCP-server i VS Code.
 
 ## Bruk
 

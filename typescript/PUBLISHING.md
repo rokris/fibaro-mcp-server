@@ -35,7 +35,7 @@ Use the pre-built packages:
 
 Share these files with users, who can then:
 1. Extract the archive
-2. Copy `.env.example` to `.env` and configure
+2. Configure via `~/.vscode/mcp.json` (see VSCODE_CONFIG.md)
 3. Run `node dist/index.js`
 
 ### Option 3: GitHub Releases

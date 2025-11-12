@@ -68,8 +68,7 @@ Se [python/README.md](python/README.md) for detaljert dokumentasjon.
 ```bash
 cd python
 pip install -e .
-cp .env.example .env
-# Rediger .env med dine Fibaro HC2 detaljer
+# Konfigurer i ~/.vscode/mcp.json (se VSCODE_CONFIG.md)
 ```
 
 **Kjør:**
@@ -88,8 +87,7 @@ Se [typescript/README.md](typescript/README.md) for detaljert dokumentasjon.
 cd typescript
 npm install
 npm run build
-cp .env.example .env
-# Rediger .env med dine Fibaro HC2 detaljer
+# Konfigurer i ~/.vscode/mcp.json (se VSCODE_CONFIG.md)
 ```
 
 **Kjør:**
@@ -113,15 +111,9 @@ cd fibaro-mcp-server
 
 ## Konfigurering
 
-Opprett en `.env` fil med følgende innhold:
+All konfigurasjon skjer via `~/.vscode/mcp.json`. Dette prosjektet bruker ikke `.env`-filer.
 
-```env
-FIBARO_URL=http://192.168.1.100
-FIBARO_USERNAME=admin
-FIBARO_PASSWORD=your_password
-```
-
-**Merk:** Bruk `https://` i URL hvis din Fibaro bruker HTTPS.
+Se [VSCODE_CONFIG.md](./VSCODE_CONFIG.md) for detaljert konfigurering av MCP-server i VS Code.
 
 ## Bruk
 
