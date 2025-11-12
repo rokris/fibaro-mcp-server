@@ -12,6 +12,7 @@ import {
   Tool,
 } from '@modelcontextprotocol/sdk/types.js';
 import dotenv from 'dotenv';
+import axios from 'axios';
 import { FibaroClient } from './fibaro-client.js';
 
 // Load environment variables
@@ -340,6 +341,31 @@ const tools: Tool[] = [
         },
       },
       required: ['name', 'value'],
+    },
+  },
+  // Camera analysis tool
+  {
+    name: 'analyze_camera_snapshot',
+    description:
+      'Capture a snapshot from a Fibaro IP camera and analyze it using local Ollama vision AI. Returns detailed description of what\'s visible in the image including people, objects, landscape, time of day, and weather conditions.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        device_id: {
+          type: 'number',
+          description: 'The camera device ID',
+        },
+        prompt: {
+          type: 'string',
+          description:
+            'Optional custom prompt for the vision model (default: detailed scene description)',
+        },
+        model: {
+          type: 'string',
+          description: 'Ollama model to use (default: llama3.2-vision)',
+        },
+      },
+      required: ['device_id'],
     },
   },
 ];
@@ -690,6 +716,136 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           },
         ],
       };
+    }
+
+    // Camera analysis tool
+    if (name === 'analyze_camera_snapshot') {
+      const deviceId = args.device_id as number;
+      const prompt =
+        (args.prompt as string) ||
+        'Describe what you see in this image in detail. Include any people, objects, buildings, landscape features, time of day, and weather conditions.';
+      const model = (args.model as string) || 'llama3.2-vision';
+      const ollamaUrl = process.env.OLLAMA_URL || 'http://localhost:11434';
+
+      try {
+        // Get camera device info
+        const device = await fibaroClient.getDevice(deviceId);
+        const cameraType = device.type || '';
+
+        // Check if it's a camera device
+        if (!cameraType.toLowerCase().includes('camera')) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error: Device ${deviceId} is not a camera (type: ${cameraType})`,
+              },
+            ],
+          };
+        }
+
+        // Get camera properties
+        const properties = device.properties || {};
+        const ip = properties.ip || '';
+        const jpgPath = properties.jpgPath || '/image/jpeg.cgi';
+        const username = properties.username || 'admin';
+        const password = properties.password || '';
+        const useHttps = (properties.httpsEnabled || 'false').toLowerCase() === 'true';
+
+        if (!ip) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error: Camera device ${deviceId} has no IP address configured`,
+              },
+            ],
+          };
+        }
+
+        // Construct camera URL
+        const protocol = useHttps ? 'https' : 'http';
+        const cameraUrl = `${protocol}://${username}:${password}@${ip}${jpgPath}`;
+
+        // Download snapshot using axios
+        console.error(`Fetching snapshot from camera ${deviceId} at ${ip}...`);
+        const snapshotResponse = await axios.get(cameraUrl, {
+          responseType: 'arraybuffer',
+          timeout: 10000,
+        });
+
+        // Encode image to base64
+        const imageBase64 = Buffer.from(snapshotResponse.data).toString('base64');
+
+        console.error(`Snapshot captured, analyzing with Ollama...`);
+
+        // Send to Ollama
+        const ollamaPayload = {
+          model: model,
+          prompt: prompt,
+          images: [imageBase64],
+          stream: false,
+        };
+
+        const ollamaResponse = await axios.post(`${ollamaUrl}/api/generate`, ollamaPayload, {
+          timeout: 120000,
+        });
+
+        const analysis = ollamaResponse.data.response || 'No response from Ollama';
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text:
+                `Camera Analysis for Device ${deviceId} (${device.name}):\n` +
+                `${'='.repeat(60)}\n` +
+                `Camera IP: ${ip}\n` +
+                `Model: ${model}\n` +
+                `${'='.repeat(60)}\n\n` +
+                `${analysis}`,
+            },
+          ],
+        };
+      } catch (error: any) {
+        if (error.code === 'ECONNREFUSED' && error.message.includes('11434')) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error: Could not connect to Ollama at ${ollamaUrl}. Make sure Ollama is running (ollama serve) and the model '${model}' is installed (ollama pull ${model})`,
+              },
+            ],
+          };
+        } else if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error: Could not connect to camera. ${error.message}`,
+              },
+            ],
+          };
+        } else if (error.code === 'ETIMEDOUT') {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error: Request timed out. Camera might be offline or Ollama is too slow.`,
+              },
+            ],
+          };
+        } else {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error analyzing camera snapshot: ${error.message}`,
+              },
+            ],
+          };
+        }
+      }
     }
 
     throw new Error(`Unknown tool: ${name}`);
