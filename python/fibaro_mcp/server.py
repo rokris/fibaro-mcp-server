@@ -1,10 +1,13 @@
 """Fibaro Home Center 2 MCP Server."""
 
 import asyncio
+import base64
 import logging
 import os
+import tempfile
 from typing import Any, Optional
 
+import requests
 from dotenv import load_dotenv
 from mcp.server import Server
 from mcp.types import (
@@ -356,6 +359,30 @@ async def list_tools() -> list[Tool]:
                 "required": ["name", "value"],
             },
         ),
+        # Camera analysis tool
+        Tool(
+            name="analyze_camera_snapshot",
+            description="Capture a snapshot from a Fibaro IP camera and analyze it using local Ollama vision AI. Returns detailed description of what's visible in the image including people, objects, landscape, time of day, and weather conditions.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "device_id": {
+                        "type": "integer",
+                        "description": "The camera device ID",
+                    },
+                    "prompt": {
+                        "type": "string",
+                        "description": "Optional custom prompt for the vision model (default: detailed scene description)",
+                    },
+                    "model": {
+                        "type": "string",
+                        "description": "Ollama model to use (default: llama3.2-vision)",
+                        "default": "llama3.2-vision",
+                    },
+                },
+                "required": ["device_id"],
+            },
+        ),
     ]
 
 
@@ -636,6 +663,98 @@ async def call_tool(name: str, arguments: Any) -> list[TextContent]:
                     type="text", text=f"Variable '{arguments['name']}' updated successfully"
                 )
             ]
+
+        elif name == "analyze_camera_snapshot":
+            device_id = arguments["device_id"]
+            prompt = arguments.get("prompt", "Describe what you see in this image in detail. Include any people, objects, buildings, landscape features, time of day, and weather conditions.")
+            model = arguments.get("model", "llama3.2-vision")
+            ollama_url = os.getenv("OLLAMA_URL", "http://localhost:11434")
+            
+            # Get camera device info
+            device = await client.get_device(device_id)
+            camera_type = device.get("type", "")
+            
+            # Check if it's a camera device
+            if "camera" not in camera_type.lower() and "Camera" not in camera_type.lower():
+                return [TextContent(type="text", text=f"Error: Device {device_id} is not a camera (type: {camera_type})")]
+            
+            # Get camera properties
+            properties = device.get("properties", {})
+            ip = properties.get("ip", "")
+            jpg_path = properties.get("jpgPath", "/image/jpeg.cgi")
+            username = properties.get("username", "admin")
+            password = properties.get("password", "")
+            use_https = properties.get("httpsEnabled", "false").lower() == "true"
+            
+            if not ip:
+                return [TextContent(type="text", text=f"Error: Camera device {device_id} has no IP address configured")]
+            
+            # Construct camera URL
+            protocol = "https" if use_https else "http"
+            camera_url = f"{protocol}://{username}:{password}@{ip}{jpg_path}"
+            
+            try:
+                # Download snapshot
+                logger.info(f"Fetching snapshot from camera {device_id} at {ip}...")
+                response = requests.get(camera_url, timeout=10)
+                response.raise_for_status()
+                
+                # Save to temporary file
+                with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp_file:
+                    tmp_file.write(response.content)
+                    tmp_path = tmp_file.name
+                
+                logger.info(f"Snapshot saved to {tmp_path}, analyzing with Ollama...")
+                
+                # Encode image to base64
+                with open(tmp_path, "rb") as img_file:
+                    image_base64 = base64.b64encode(img_file.read()).decode('utf-8')
+                
+                # Send to Ollama
+                ollama_payload = {
+                    "model": model,
+                    "prompt": prompt,
+                    "images": [image_base64],
+                    "stream": False
+                }
+                
+                ollama_response = requests.post(
+                    f"{ollama_url}/api/generate",
+                    json=ollama_payload,
+                    timeout=120
+                )
+                ollama_response.raise_for_status()
+                
+                result = ollama_response.json()
+                analysis = result.get("response", "No response from Ollama")
+                
+                # Clean up temp file
+                os.unlink(tmp_path)
+                
+                return [
+                    TextContent(
+                        type="text",
+                        text=f"Camera Analysis for Device {device_id} ({device.get('name', 'Unknown')}):\n"
+                        f"{'='*60}\n"
+                        f"Camera IP: {ip}\n"
+                        f"Model: {model}\n"
+                        f"{'='*60}\n\n"
+                        f"{analysis}"
+                    )
+                ]
+                
+            except requests.exceptions.ConnectionError as e:
+                if "11434" in str(e):
+                    return [TextContent(type="text", text=f"Error: Could not connect to Ollama at {ollama_url}. Make sure Ollama is running (ollama serve) and the model '{model}' is installed (ollama pull {model})")]
+                else:
+                    return [TextContent(type="text", text=f"Error: Could not connect to camera at {ip}: {str(e)}")]
+            except requests.exceptions.Timeout:
+                return [TextContent(type="text", text=f"Error: Request timed out. Camera might be offline or Ollama is too slow.")]
+            except Exception as e:
+                # Clean up temp file if it exists
+                if 'tmp_path' in locals() and os.path.exists(tmp_path):
+                    os.unlink(tmp_path)
+                return [TextContent(type="text", text=f"Error analyzing camera snapshot: {str(e)}")]
 
         else:
             return [TextContent(type="text", text=f"Unknown tool: {name}")]

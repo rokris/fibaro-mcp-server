@@ -42,6 +42,7 @@ npx fibaro-mcp-server
 - ⚡ Energiforbruksovervåkning
 - 🌡️ Temperaturdata
 - 📍 Lokasjonsinformasjon
+- 🎥 **NYT: AI-drevet kameraanalyse med lokal Ollama** (se [CAMERA_ANALYSIS.md](CAMERA_ANALYSIS.md))
 
 ## Prosjektstruktur
 
