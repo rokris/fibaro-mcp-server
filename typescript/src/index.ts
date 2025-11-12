@@ -747,7 +747,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         // Get camera properties
         const properties = device.properties || {};
         const ip = properties.ip || '';
-        const jpgPath = properties.jpgPath || '/image/jpeg.cgi';
+        let jpgPath = properties.jpgPath || '/image/jpeg.cgi';
+        
+        // Ensure jpgPath starts with '/' for proper URL construction
+        if (!jpgPath.startsWith('/')) {
+          jpgPath = '/' + jpgPath;
+        }
+        
         const username = properties.username || 'admin';
         const password = properties.password || '';
         const useHttps = (properties.httpsEnabled || 'false').toLowerCase() === 'true';
