@@ -58,3 +58,19 @@ typescript/fibaro-mcp-server-dist/
 # OS
 .DS_Store
 Thumbs.db
+
+# Camera snapshots and images
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.bmp
+*_snapshot.jpg
+*_current.jpg
+*kamera*.jpg
+
+# Temporary files
+*.tmp
+*.temp
+/tmp/
+temp/
