@@ -14,7 +14,18 @@ export interface FibaroDevice {
   visible?: boolean;
   properties?: Record<string, any>;
   actions?: Record<string, any>;
+  interfaces?: string[];
+  baseType?: string;
 }
+
+export interface FibaroIcon {
+  id: number;
+  deviceType?: string;
+  iconSetName?: string;
+  name?: string;
+}
+
+export type FibaroIconsResponse = FibaroIcon[] | { device: FibaroIcon[] };
 
 export interface FibaroRoom {
   id: number;
@@ -185,6 +196,46 @@ export class FibaroClient {
    */
   async getDiagnostics(): Promise<any> {
     const response = await this.client.get('/diagnostics');
+    return response.data;
+  }
+
+  /**
+   * Get icons metadata
+   */
+  async getIcons(): Promise<FibaroIconsResponse> {
+    const response = await this.client.get('/icons');
+    return response.data;
+  }
+
+  /**
+   * Get consumption listings / reports
+   */
+  async getConsumption(): Promise<any> {
+    const response = await this.client.get('/consumption');
+    return response.data;
+  }
+
+  /**
+   * Get iOS devices registered with the system
+   */
+  async getIOSDevices(): Promise<any[]> {
+    const response = await this.client.get('/iosDevices');
+    return response.data;
+  }
+
+  /**
+   * Get RGB programs
+   */
+  async getRGBPrograms(): Promise<any[]> {
+    const response = await this.client.get('/RGBPrograms');
+    return response.data;
+  }
+
+  /**
+   * Get tracking schedules
+   */
+  async getTrackingSchedules(): Promise<any[]> {
+    const response = await this.client.get('/trackingSchedules');
     return response.data;
   }
 
