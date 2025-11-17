@@ -13,7 +13,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import dotenv from 'dotenv';
 import axios from 'axios';
-import { FibaroClient } from './fibaro-client.js';
+import { FibaroClient, FibaroDevice, FibaroIcon, FibaroIconsResponse } from './fibaro-client.js';
 
 // Load environment variables
 dotenv.config();
@@ -62,7 +62,7 @@ const server = new Server(
 );
 
 // Define tools
-const tools: Tool[] = [
+const tools: any[] = [
   // Device tools
   {
     name: 'list_devices',
@@ -71,6 +71,44 @@ const tools: Tool[] = [
       type: 'object',
       properties: {},
     },
+    outputSchema: {
+      type: 'object',
+      properties: {
+        devices: {
+          type: 'array',
+          items: {
+    outputSchema: {
+      type: 'object',
+      properties: {
+        device: { type: 'object' },
+        deviceCategory: { type: 'string' },
+        iconSetName: { type: ['string', 'null'] },
+        actions: { type: 'array' },
+      },
+    },
+    examples: [
+      {
+        input: { device_id: 42 },
+        output: { device: { id: 42, name: 'Entrance Camera' }, deviceCategory: 'camera', iconSetName: 'camera' },
+      },
+    ],
+            type: 'object',
+            properties: {
+              id: { type: 'number' },
+              name: { type: 'string' },
+              type: { type: 'string' },
+              roomID: { type: 'number' },
+            },
+          },
+        },
+      },
+    },
+    examples: [
+      {
+        input: {},
+        output: { devices: [{ id: 1, name: 'Lamp', type: 'com.fibaro.FGSwitch', roomID: 2 }] },
+      },
+    ],
   },
   {
     name: 'get_device',
@@ -85,6 +123,20 @@ const tools: Tool[] = [
       },
       required: ['device_id'],
     },
+    outputSchema: {
+      type: 'object',
+      properties: {
+        device: {
+          type: 'object',
+        },
+      },
+    },
+    examples: [
+      {
+        input: { device_id: 42 },
+        output: { device: { id: 42, name: 'Entrance Camera', type: 'com.fibaro.IPCamera', roomID: 1 } },
+      },
+    ],
   },
   {
     name: 'control_device',
@@ -195,12 +247,70 @@ const tools: Tool[] = [
     },
   },
   {
+    name: 'get_icons',
+    description: 'Get list of available icons from Fibaro',
+    inputSchema: { type: 'object', properties: {} },
+    outputSchema: { type: 'object', properties: { icons: { type: 'array' } } },
+    examples: [{ input: {}, output: { icons: [{ id: 1, name: 'light' }] } }],
+  },
+  {
     name: 'get_weather',
     description: 'Get weather information from Fibaro system',
     inputSchema: {
       type: 'object',
       properties: {},
     },
+  },
+  {
+    name: 'get_consumption',
+    description: 'Get consumption reports/data',
+    inputSchema: { type: 'object', properties: {} },
+    outputSchema: { type: 'object', properties: { consumption: { type: 'object' } } },
+    examples: [{ input: {}, output: { consumption: { total: 123 } } }],
+  },
+  {
+    name: 'get_ios_devices',
+    description: 'Get iOS devices registered in the system',
+    inputSchema: { type: 'object', properties: {} },
+    outputSchema: { type: 'object', properties: { iosDevices: { type: 'array' } } },
+    examples: [{ input: {}, output: { iosDevices: [{ id: 1, name: 'iPhone' }] } }],
+  },
+  {
+    name: 'get_rgb_programs',
+    description: 'Get RGB lighting programs',
+    inputSchema: { type: 'object', properties: {} },
+    outputSchema: { type: 'object', properties: { programs: { type: 'array' } } },
+    examples: [{ input: {}, output: { programs: [{ id: 1, name: 'Evening' }] } }],
+  },
+  {
+    name: 'get_tracking_schedules',
+    description: 'Get tracking schedules',
+    inputSchema: { type: 'object', properties: {} },
+    outputSchema: { type: 'object', properties: { schedules: { type: 'array' } } },
+    examples: [{ input: {}, output: { schedules: [{ id: 1, name: 'Weekly' }] } }],
+  },
+  {
+    name: 'discover_device',
+    description: 'Return capability summary for a deviceId to help agents decide actions',
+    inputSchema: {
+      type: 'object',
+      properties: { device_id: { type: 'number' } },
+      required: ['device_id'],
+    },
+    outputSchema: {
+      type: 'object',
+      properties: {
+        deviceId: { type: 'number' },
+        deviceCategory: { type: 'string' },
+        supportsActions: { type: 'array' },
+        snapshotCapable: { type: 'boolean' },
+        energyCapable: { type: 'boolean' },
+        hasTemperature: { type: 'boolean' },
+      },
+    },
+    examples: [
+      { input: { device_id: 341 }, output: { deviceId: 341, deviceCategory: 'camera', supportsActions: ['start'], snapshotCapable: true } },
+    ],
   },
   {
     name: 'get_location',
@@ -367,8 +477,124 @@ const tools: Tool[] = [
       },
       required: ['device_id'],
     },
+    outputSchema: {
+      type: 'object',
+      properties: {
+        deviceId: { type: 'number' },
+        deviceName: { type: 'string' },
+        model: { type: 'string' },
+        cameraIP: { type: 'string' },
+        peopleCount: { type: 'number' },
+        people: { type: 'array' },
+        objects: { type: 'array' },
+        timeOfDay: { type: ['string', 'null'] },
+        weather: { type: ['string', 'null'] },
+        confidence: { type: ['number', 'null'] },
+        rawAnalysisText: { type: 'string' },
+      },
+    },
+    examples: [
+      {
+        input: { device_id: 341, prompt: 'Check the entrance camera for visitors' },
+        output: { deviceId: 341, deviceName: 'Entrance', model: 'llama3.2-vision', peopleCount: 0, people: [], objects: [], rawAnalysisText: 'No people visible.' },
+      },
+    ],
   },
 ];
+
+// Helper to build structured JSON response content
+// Build structured content for tool results. Return the object that will be
+// placed in the `structuredContent` field of a CallToolResult.
+function buildJsonContent(data: any, code = 'OK') {
+  return {
+    success: code === 'OK',
+    code,
+    data,
+  };
+}
+
+// Helper to build structured error responses
+function buildErrorContent(message: string, code = 'ERROR') {
+  return {
+    success: false,
+    code,
+    message,
+  };
+}
+
+// Simple heuristic parser to extract basic facts from Ollama free-text analysis
+function parseCameraAnalysis(text: string) {
+  const lower = (text || '').toLowerCase();
+  const result: any = {
+    peopleCount: null,
+    people: [],
+    objects: [],
+    timeOfDay: null,
+    weather: null,
+  };
+
+  // People count
+  const peopleMatch = lower.match(/(\d+)\s+people|(\d+)\s+persons|(\d+)\s+people\b/);
+  if (peopleMatch) {
+    const num = Number(peopleMatch[1] || peopleMatch[2] || peopleMatch[3]);
+    if (!Number.isNaN(num)) result.peopleCount = num;
+  } else if (/no\s+(people|persons|person)\b/.test(lower) || /nobody|no one\b/.test(lower)) {
+    result.peopleCount = 0;
+  }
+
+  // Common objects
+  const objectKeywords = ['car', 'vehicle', 'bicycle', 'dog', 'cat', 'gate', 'person', 'people', 'truck', 'bike'];
+  objectKeywords.forEach((kw) => {
+    if (new RegExp(`\\b${kw}\\b`).test(lower)) {
+      result.objects.push(kw);
+    }
+  });
+
+  // Time of day heuristics
+  if (/morning|dawn|sunrise/.test(lower)) result.timeOfDay = 'morning';
+  else if (/afternoon|midday|noon/.test(lower)) result.timeOfDay = 'afternoon';
+  else if (/evening|dusk|sunset/.test(lower)) result.timeOfDay = 'evening';
+  else if (/night|dark/.test(lower)) result.timeOfDay = 'night';
+
+  // Weather heuristics
+  if (/rain|raining|wet|drizzle/.test(lower)) result.weather = 'rain';
+  else if (/snow|snowing/.test(lower)) result.weather = 'snow';
+  else if (/sunny|clear/.test(lower)) result.weather = 'clear';
+  else if (/cloud|overcast|cloudy/.test(lower)) result.weather = 'cloudy';
+
+  // Remove duplicates
+  result.objects = Array.from(new Set(result.objects));
+
+  return result;
+}
+
+// Map Fibaro device types / icon names to simple categories
+function mapDeviceCategory(device: FibaroDevice, icons: FibaroIconsResponse = []) {
+  const t = (device.type || '').toLowerCase();
+  const props = device.properties || {};
+
+  // normalize icons to an array
+  const iconsArr: FibaroIcon[] = Array.isArray(icons) ? (icons as FibaroIcon[]) : ((icons && (icons as any).device) || []);
+
+  // try icon lookup
+  let iconSetName: string | null = null;
+  if (iconsArr && Array.isArray(iconsArr)) {
+    const match = iconsArr.find((i: FibaroIcon) => String(i.deviceType || '').toLowerCase() === String(device.baseType || device.type || '').toLowerCase() || (i.iconSetName && device.type && String(i.iconSetName).toLowerCase() === String(device.type).toLowerCase()));
+    if (match) iconSetName = match.iconSetName || null;
+  }
+
+  let category = 'unknown';
+  if (t.includes('camera') || (props && (props.jpgPath || props.snapshotUrl))) category = 'camera';
+  else if (t.includes('thermostat') || t.includes('temperature')) category = 'thermostat';
+  else if (t.includes('binary') || t.includes('switch')) category = 'switch';
+  else if (t.includes('multilevel') || t.includes('dimmer')) category = 'dimmer';
+  else if (t.includes('sensor') || t.includes('motion') || t.includes('flood') || t.includes('smoke') || t.includes('door')) category = 'sensor';
+  else if (t.includes('scene')) category = 'scene';
+  else if (t.includes('rgb') || iconSetName === 'rgb' || (props && props.rgb)) category = 'rgb';
+  else if (t.includes('roller') || t.includes('shutter') || t.includes('blind') || t.includes('roleta')) category = 'cover';
+
+  return { deviceCategory: category, iconSetName };
+}
 
 // List tools handler
 server.setRequestHandler(ListToolsRequestSchema, async () => {
@@ -392,19 +618,42 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               .join('\n')}`,
           },
         ],
+        structuredContent: buildJsonContent({ devices: devices.map((d) => ({ id: d.id, name: d.name, type: d.type, roomID: d.roomID })) }),
       };
     }
 
     if (name === 'get_device') {
-      const device = await fibaroClient.getDevice(args.device_id as number);
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Device Information:\nID: ${device.id}\nName: ${device.name}\nType: ${device.type}\nRoom ID: ${device.roomID}\nEnabled: ${device.enabled}\nProperties: ${JSON.stringify(device.properties, null, 2)}\nActions: ${JSON.stringify(Object.keys(device.actions || {}), null, 2)}`,
-          },
-        ],
-      };
+        const device = await fibaroClient.getDevice(args.device_id as number);
+        // get icons to try to resolve iconSetName
+        let icons = [] as any;
+        try {
+          icons = await fibaroClient.getIcons();
+        } catch (e) {
+          // ignore icons errors
+        }
+
+        const { deviceCategory, iconSetName } = mapDeviceCategory(device, icons);
+
+        // extract actions list
+        const actionsList = device.actions ? Object.keys(device.actions) : [];
+
+        const enriched = {
+          device: device,
+          deviceCategory,
+          iconSetName: iconSetName || null,
+          interfaces: device.interfaces || [],
+          actions: actionsList,
+        };
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Device Information:\nID: ${device.id}\nName: ${device.name}\nType: ${device.type}\nRoom ID: ${device.roomID}`,
+            },
+          ],
+          structuredContent: buildJsonContent(enriched),
+        };
     }
 
     if (name === 'control_device') {
@@ -433,6 +682,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             text: `Found ${rooms.length} rooms:\n\n${rooms.map((r) => `- ID: ${r.id}, Name: ${r.name}`).join('\n')}`,
           },
         ],
+        structuredContent: buildJsonContent({ rooms: rooms.map((r) => ({ id: r.id, name: r.name, sectionID: r.sectionID })) }),
       };
     }
 
@@ -445,6 +695,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             text: `Room Information:\nID: ${room.id}\nName: ${room.name}\nSection ID: ${room.sectionID}`,
           },
         ],
+        structuredContent: buildJsonContent({ room }),
       };
     }
 
@@ -473,6 +724,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             text: `Found ${scenes.length} scenes:\n\n${scenes.map((s) => `- ID: ${s.id}, Name: ${s.name}`).join('\n')}`,
           },
         ],
+        structuredContent: buildJsonContent({ scenes: scenes.map((s) => ({ id: s.id, name: s.name, roomID: s.roomID })) }),
       };
     }
 
@@ -543,6 +795,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             text: infoParts.join('\n'),
           },
         ],
+        structuredContent: buildJsonContent({ scene }),
       };
     }
 
@@ -568,7 +821,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             text: `System Information:\nSerial Number: ${info.serialNumber}\nHC Version: ${info.hcVersion}\nPlatform: ${info.platform}\nMAC: ${info.mac}`,
           },
         ],
+        structuredContent: buildJsonContent({ system: info }),
       };
+    }
+
+    if (name === 'get_icons') {
+      const icons = await fibaroClient.getIcons();
+      const iconsArr = Array.isArray(icons) ? icons : (icons && (icons as any).device) || [];
+      return { content: [ { type: 'text', text: `Found ${iconsArr.length} icons` } ], structuredContent: buildJsonContent({ icons: iconsArr }) };
     }
 
     if (name === 'get_weather') {
@@ -580,7 +840,65 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             text: `Weather Information:\n${JSON.stringify(weather, null, 2)}`,
           },
         ],
+        structuredContent: buildJsonContent({ weather }),
       };
+    }
+
+    if (name === 'get_consumption') {
+      try {
+        const consumption = await fibaroClient.getConsumption();
+        return { content: [ { type: 'text', text: `Consumption data retrieved` } ], structuredContent: buildJsonContent({ consumption }) };
+      } catch (err: any) {
+        if (err && err.response && err.response.status === 501) {
+          const msg = 'Consumption endpoint not implemented on this Fibaro unit';
+          return { content: [ { type: 'text', text: `Error: ${msg}` } ], structuredContent: buildErrorContent(msg, 'NOT_IMPLEMENTED'), isError: true };
+        }
+        throw err;
+      }
+    }
+
+    if (name === 'get_ios_devices') {
+      const iosDevices = await fibaroClient.getIOSDevices();
+      return { content: [ { type: 'text', text: `Found ${iosDevices.length} iOS devices` } ], structuredContent: buildJsonContent({ iosDevices }) };
+    }
+
+    if (name === 'get_rgb_programs') {
+      const programs = await fibaroClient.getRGBPrograms();
+      return { content: [ { type: 'text', text: `Found ${programs.length} RGB programs` } ], structuredContent: buildJsonContent({ programs }) };
+    }
+
+    if (name === 'get_tracking_schedules') {
+      const schedules = await fibaroClient.getTrackingSchedules();
+      return { content: [ { type: 'text', text: `Found ${schedules.length} tracking schedules` } ], structuredContent: buildJsonContent({ schedules }) };
+    }
+
+    if (name === 'discover_device') {
+      const deviceId = args.device_id as number;
+      const device = await fibaroClient.getDevice(deviceId);
+      let icons = [] as any;
+      try {
+        icons = await fibaroClient.getIcons();
+      } catch (e) {}
+
+      const { deviceCategory, iconSetName } = mapDeviceCategory(device, icons);
+      const actionsList = device.actions ? Object.keys(device.actions) : [];
+
+      const snapshotCapable = deviceCategory === 'camera' || Boolean(device.properties && (device.properties.jpgPath || device.properties.snapshotUrl));
+      const energyCapable = Boolean(device.properties && (device.properties.energy || device.properties.power || device.properties.consumption));
+      const hasTemperature = Boolean(device.properties && (device.properties.temperature || device.type && device.type.toLowerCase().includes('thermostat')));
+
+      const summary = {
+        deviceId,
+        deviceCategory,
+        iconSetName: iconSetName || null,
+        supportsActions: actionsList,
+        snapshotCapable,
+        energyCapable,
+        hasTemperature,
+        rawDevice: device,
+      };
+
+      return { content: [ { type: 'text', text: `Discovery for device ${deviceId}: category=${deviceCategory}` } ], structuredContent: buildJsonContent(summary) };
     }
 
     if (name === 'get_location') {
@@ -616,6 +934,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             text: `Found ${users.length} users:\n\n${users.map((u) => `- ID: ${u.id}, Name: ${u.name}, Email: ${u.email}`).join('\n')}`,
           },
         ],
+        structuredContent: buildJsonContent({ users: users.map((u) => ({ id: u.id, name: u.name, email: u.email })) }),
       };
     }
 
@@ -703,6 +1022,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             text: `Variable: ${variable.name}\nValue: ${variable.value}\nModified: ${variable.modified}`,
           },
         ],
+        structuredContent: buildJsonContent({ variable }),
       };
     }
 
@@ -715,6 +1035,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             text: `Variable set successfully: ${JSON.stringify(result)}`,
           },
         ],
+        structuredContent: buildJsonContent({ result }),
       };
     }
 
@@ -734,13 +1055,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
         // Check if it's a camera device
         if (!cameraType.toLowerCase().includes('camera')) {
+          const msg = `Device ${deviceId} is not a camera (type: ${cameraType})`;
           return {
             content: [
-              {
-                type: 'text',
-                text: `Error: Device ${deviceId} is not a camera (type: ${cameraType})`,
-              },
+              { type: 'text', text: `Error: ${msg}` },
             ],
+            structuredContent: buildErrorContent(msg, 'NOT_A_CAMERA'),
+            isError: true,
           };
         }
 
@@ -759,13 +1080,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const useHttps = (properties.httpsEnabled || 'false').toLowerCase() === 'true';
 
         if (!ip) {
+          const msg = `Camera device ${deviceId} has no IP address configured`;
           return {
             content: [
-              {
-                type: 'text',
-                text: `Error: Camera device ${deviceId} has no IP address configured`,
-              },
+              { type: 'text', text: `Error: ${msg}` },
             ],
+            structuredContent: buildErrorContent(msg, 'NO_CAMERA_IP'),
+            isError: true,
           };
         }
 
@@ -799,6 +1120,21 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
         const analysis = ollamaResponse.data.response || 'No response from Ollama';
 
+        // Attempt to parse useful structured fields from the free-text analysis
+        const heur = parseCameraAnalysis(analysis);
+        const structured = {
+          deviceId,
+          deviceName: device.name,
+          model,
+          cameraIP: ip,
+          peopleCount: heur.peopleCount !== null ? heur.peopleCount : 0,
+          people: heur.people || [],
+          objects: heur.objects || [],
+          timeOfDay: heur.timeOfDay,
+          weather: heur.weather,
+          confidence: null,
+          rawAnalysisText: analysis,
+        };
         return {
           content: [
             {
@@ -812,57 +1148,32 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 `${analysis}`,
             },
           ],
+          structuredContent: buildJsonContent({ success: true, code: 'OK', data: structured }),
         };
       } catch (error: any) {
-        if (error.code === 'ECONNREFUSED' && error.message.includes('11434')) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Error: Could not connect to Ollama at ${ollamaUrl}. Make sure Ollama is running (ollama serve) and the model '${model}' is installed (ollama pull ${model})`,
-              },
-            ],
-          };
-        } else if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Error: Could not connect to camera. ${error.message}`,
-              },
-            ],
-          };
-        } else if (error.code === 'ETIMEDOUT') {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Error: Request timed out. Camera might be offline or Ollama is too slow.`,
-              },
-            ],
-          };
+        // Structured error handling
+        if (error && (error.code === 'ECONNREFUSED' || (error.message && error.message.includes('connect ECONNREFUSED')))) {
+          if (error.message && error.message.includes('11434')) {
+            const msg = `Could not connect to Ollama at ${ollamaUrl}. Make sure Ollama is running (ollama serve) and the model '${model}' is installed (ollama pull ${model})`;
+            return { content: [{ type: 'text', text: `Error: ${msg}` }], structuredContent: buildErrorContent(msg, 'OLLAMA_UNAVAILABLE'), isError: true };
+          }
+          const msg = `Could not connect to camera. ${error.message || String(error)}`;
+          return { content: [{ type: 'text', text: `Error: ${msg}` }], structuredContent: buildErrorContent(msg, 'CAMERA_CONNECT_ERROR'), isError: true };
+        } else if (error && error.code === 'ETIMEDOUT') {
+          const msg = 'Request timed out. Camera might be offline or Ollama is too slow.';
+          return { content: [{ type: 'text', text: `Error: ${msg}` }], structuredContent: buildErrorContent(msg, 'TIMEOUT'), isError: true };
         } else {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Error analyzing camera snapshot: ${error.message}`,
-              },
-            ],
-          };
+          const msg = `Error analyzing camera snapshot: ${error && error.message ? error.message : String(error)}`;
+          return { content: [{ type: 'text', text: msg }], structuredContent: buildErrorContent(msg, 'UNKNOWN_CAMERA_ERROR'), isError: true };
         }
       }
     }
 
     throw new Error(`Unknown tool: ${name}`);
-  } catch (error) {
+  } catch (error: any) {
+    const msg = error instanceof Error ? error.message : String(error);
     return {
-      content: [
-        {
-          type: 'text',
-          text: `Error: ${error instanceof Error ? error.message : String(error)}`,
-        },
-      ],
+      content: [{ type: 'text', text: `Error: ${msg}` }, buildErrorContent(msg, 'SERVER_ERROR')],
       isError: true,
     };
   }
