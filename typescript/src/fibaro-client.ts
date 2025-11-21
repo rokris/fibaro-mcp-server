@@ -312,4 +312,87 @@ export class FibaroClient {
     });
     return response.data;
   }
+
+  /**
+   * Get aggregated home status
+   */
+  async getHomeStatus(): Promise<any> {
+    const [devices, rooms, weather] = await Promise.all([
+      this.getDevices(),
+      this.getRooms(),
+      this.getWeather(),
+    ]);
+
+    const activeDevices = devices.filter((d) => {
+      // Check for lights/switches that are ON
+      if (d.properties && (d.properties.value === 'true' || d.properties.value > 0)) {
+        // Exclude sensors and main controllers from "active" list if they are just reporting data
+        const type = (d.type || '').toLowerCase();
+        if (
+          type.includes('sensor') ||
+          type.includes('meter') ||
+          type.includes('thermostat') ||
+          type.includes('smoke') ||
+          type.includes('remote')
+        ) {
+          return false;
+        }
+        return true;
+      }
+      return false;
+    });
+
+    const breachedSensors = devices.filter((d) => {
+      // Check for motion/door sensors that are breached/active
+      if (d.properties && (d.properties.value === 'true' || d.properties.value > 0)) {
+        const type = (d.type || '').toLowerCase();
+        if (type.includes('motion') || type.includes('door') || type.includes('window')) {
+          return true;
+        }
+      }
+      return false;
+    });
+
+    const temperatures = devices
+      .filter((d) => d.type && d.type.toLowerCase().includes('temperature'))
+      .map((d) => ({
+        id: d.id,
+        name: d.name,
+        value: d.properties ? parseFloat(d.properties.value) : null,
+        roomID: d.roomID,
+      }))
+      .filter((t) => t.value !== null && !isNaN(t.value));
+
+    const avgTemp =
+      temperatures.length > 0
+        ? temperatures.reduce((sum, t) => sum + (t.value || 0), 0) / temperatures.length
+        : null;
+
+    // Map room names to IDs for easier lookup
+    const roomMap = new Map(rooms.map((r) => [r.id, r.name]));
+
+    return {
+      weather,
+      activeDevices: activeDevices.map((d) => ({
+        id: d.id,
+        name: d.name,
+        room: roomMap.get(d.roomID) || 'Unknown',
+        value: d.properties?.value,
+      })),
+      breachedSensors: breachedSensors.map((d) => ({
+        id: d.id,
+        name: d.name,
+        room: roomMap.get(d.roomID) || 'Unknown',
+        value: d.properties?.value,
+      })),
+      temperature: {
+        average: avgTemp ? parseFloat(avgTemp.toFixed(1)) : null,
+        sensors: temperatures.map((t) => ({
+          name: t.name,
+          value: t.value,
+          room: roomMap.get(t.roomID) || 'Unknown',
+        })),
+      },
+    };
+  }
 }

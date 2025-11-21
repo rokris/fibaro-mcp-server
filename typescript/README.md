@@ -16,6 +16,7 @@ TypeScript/Node.js implementasjon av Model Context Protocol (MCP) server for Fib
 - ⚡ Energiforbruksovervåkning
 - 🌡️ Temperaturdata
 - 📍 Lokasjonsinformasjon
+- 🎥 **AI-drevet kameraanalyse** (via Ollama)
 
 ## Installasjon
 
@@ -79,7 +80,8 @@ Legg til i `~/.vscode/mcp.json`:
       "env": {
         "FIBARO_URL": "http://192.168.1.100",
         "FIBARO_USERNAME": "admin",
-        "FIBARO_PASSWORD": "your_password"
+        "FIBARO_PASSWORD": "your_password",
+        "OLLAMA_URL": "http://localhost:11434"
       }
     }
   }
@@ -97,7 +99,29 @@ Legg til i `~/.vscode/mcp.json`:
       "env": {
         "FIBARO_URL": "http://192.168.1.100",
         "FIBARO_USERNAME": "admin",
-        "FIBARO_PASSWORD": "your_password"
+        "FIBARO_PASSWORD": "your_password",
+        "OLLAMA_URL": "http://localhost:11434"
+      }
+    }
+  }
+}
+```
+
+## Konfigurasjon
+
+### Miljøvariabler
+
+| Variabel | Beskrivelse | Påkrevd | Default |
+|----------|-------------|---------|---------|
+| `FIBARO_URL` | URL til Fibaro HC2 (f.eks. `http://192.168.1.100`) | Ja | - |
+| `FIBARO_USERNAME` | Brukernavn | Ja | - |
+| `FIBARO_PASSWORD` | Passord | Ja | - |
+| `FIBARO_USE_HTTPS` | Bruk HTTPS (true/false) | Nei | `false` |
+| `OLLAMA_URL` | URL til lokal Ollama instans | Nei | `http://localhost:11434` |
+| `HOME_STATUS_CAMERA_CONCURRENCY` | Antall samtidige kamera-analyser | Nei | `2` |
+| `HOME_STATUS_CAMERA_INCLUDE` | Liste av kamera-IDer som skal analyseres | Nei | (Alle) |
+| `HOME_STATUS_CAMERA_EXCLUDE` | Liste av kamera-IDer som skal ekskluderes | Nei | (Ingen) |
+| `HOME_STATUS_TEST_TIMEOUT` | Timeout for kamera-analyse (ms) | Nei | `30000` |        "FIBARO_PASSWORD": "your_password"
       }
     }
   }

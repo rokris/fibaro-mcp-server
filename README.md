@@ -138,38 +138,12 @@ Serveren tilbyr følgende tools:
 #### System
 - `get_system_info` - Hent systeminformasjon
 - `get_weather` - Hent værinformasjon
+- `get_home_status` - Hent komplett statusrapport for hjemmet (inkludert AI-analyse av kameraer)
 
 #### Globale Variabler
 - `list_global_variables` - List alle globale variabler
 - `get_global_variable` - Hent en spesifikk global variabel
 - `set_global_variable` - Sett en global variabel
-
-## Sammenligning: Python vs TypeScript
-
-Begge versjoner tilbyr identisk funksjonalitet, men har forskjellige fordeler:
-
-| Aspekt | Python 🐍 | TypeScript 📘 |
-|--------|----------|---------------|
-| **Installasjon** | `pip install -e .` | `npm install && npm run build` |
-| **Kjøring** | `python -m fibaro_mcp.server` | `npm start` eller `node dist/index.js` |
-| **Avhengigheter** | Python 3.8+, httpx, mcp, python-dotenv | Node.js 18+, axios, @modelcontextprotocol/sdk |
-| **Distribusjon** | PyPI (pip) | npm / npx |
-| **Type safety** | Valgfri (med mypy) | Innebygd i TypeScript |
-| **Kompilering** | Nei (interpretert) | Ja (til JavaScript) |
-| **Startup tid** | Rask | Svært rask |
-| **Minnebruk** | Moderat | Lavere |
-| **Enkel test** | `python test_server.py` | `node dist/test.js` |
-
-### Velg Python hvis:
-- ✅ Du allerede har Python installert
-- ✅ Du foretrekker Python syntaks
-- ✅ Du har andre Python-avhengigheter i prosjektet
-
-### Velg TypeScript hvis:
-- ✅ Du foretrekker Node.js økosystemet
-- ✅ Du vil ha type safety uten ekstra verktøy
-- ✅ Du vil bruke npx for enkel installasjon (når publisert)
-- ✅ Du ønsker raskere oppstart og lavere minnebruk
 
 ## Fibaro Home Center 2 API
 
@@ -187,12 +161,18 @@ Serveren bruker Fibaro Home Center 2 REST API:
 
 Installer dev-avhengigheter:
 ```bash
-pip install -e ".[dev]"
+cd typescript
+npm install
 ```
 
-Kjør tester:
+Bygg prosjektet:
 ```bash
-pytest
+npm run build
+```
+
+Kjør i watch-mode under utvikling:
+```bash
+npm run dev
 ```
 
 ## Lisens

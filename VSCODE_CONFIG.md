@@ -29,7 +29,10 @@ GitHub Copilot MCP-konfigurasjonen ligger i VS Code settings:
         "FIBARO_HOST": "192.168.1.100",
         "FIBARO_USERNAME": "admin",
         "FIBARO_PASSWORD": "your_password",
-        "FIBARO_USE_HTTPS": "false"
+        "FIBARO_USE_HTTPS": "false",
+        "OLLAMA_URL": "http://localhost:11434",
+        "HOME_STATUS_CAMERA_CONCURRENCY": "2",
+        "HOME_STATUS_CAMERA_INCLUDE": "87,342,176"
       }
     }
   }
@@ -41,6 +44,16 @@ Erstatt følgende verdier med dine egne:
 - `FIBARO_USERNAME` - Brukernavn for Fibaro HC2
 - `FIBARO_PASSWORD` - Passord for Fibaro HC2
 - `FIBARO_USE_HTTPS` - Sett til `"true"` hvis du bruker HTTPS
+
+### AI og Kamera Konfigurasjon (Valgfritt)
+
+For å aktivere AI-analyse av kameraer i `get_home_status`:
+
+- `OLLAMA_URL` - URL til din lokale Ollama instans (default: `http://localhost:11434`)
+- `HOME_STATUS_CAMERA_CONCURRENCY` - Antall kameraer som analyseres samtidig (default: `2`). Senk denne hvis du opplever timeouts.
+- `HOME_STATUS_CAMERA_INCLUDE` - Komma-separert liste av kamera-IDer som *skal* analyseres. Hvis satt, analyseres *kun* disse.
+- `HOME_STATUS_CAMERA_EXCLUDE` - Komma-separert liste av kamera-IDer som *ikke* skal analyseres.
+- `HOME_STATUS_TEST_TIMEOUT` - Timeout i millisekunder for hver kamera-analyse (default: `30000`).
 
 > **Note:** Serveren installeres automatisk via npx første gang du bruker den. Ingen manuell installasjon nødvendig!
 
