@@ -18,8 +18,7 @@ async function main() {
     OLLAMA_URL: process.env.OLLAMA_URL || 'http://localhost:11434',
   };
 
-  const clientInfo = { name: 'mcp-analyze-camera', version: '0.1.0' };
-  const client = new Client(clientInfo, { capabilities: { tools: {} } });
+  const client = new Client({ name: 'mcp-home-status-test', version: '0.1.0' }, { capabilities: { tools: {} } });
   const transport = new StdioClientTransport({
     command: process.execPath,
     args: [serverPath],
@@ -37,23 +36,23 @@ async function main() {
   await client.connect(transport);
   console.log('Connected. Server version:', client.getServerVersion());
 
-  // Choose a camera device id; adjust if needed
-  const cameraDeviceId = parseInt(process.argv[2] || '341', 10);
-  console.log('Calling analyze_camera_snapshot for device', cameraDeviceId);
-
   try {
-    const res = await client.callTool({ name: 'analyze_camera_snapshot', arguments: { device_id: cameraDeviceId, prompt: 'Describe the scene in this image in detail.' } });
-    console.log('Analyze result:');
-    if (res.structuredContent) console.log('structuredContent:', JSON.stringify(res.structuredContent, null, 2));
+    const timeoutMs = parseInt(process.env.HOME_STATUS_TEST_TIMEOUT || '180000', 10);
+    const res = await client.callTool({ name: 'get_home_status', arguments: {} }, undefined, { timeout: timeoutMs });
+    console.log('Home status result:\n');
     if (res.content) {
       for (const part of res.content) {
-        if (part.type === 'text') console.log('[text]', part.text);
-        if (part.type === 'image') console.log('[image]', part.url || part.description || '<image>');
-        if (part.type === 'resource') console.log('[resource]', part.title || JSON.stringify(part, null, 2));
+        if (part.type === 'text') {
+          console.log(part.text);
+        }
       }
     }
-  } catch (e) {
-    console.error('Analyze call failed:', e);
+    if (res.structuredContent) {
+      console.log('\nstructuredContent:');
+      console.log(JSON.stringify(res.structuredContent, null, 2));
+    }
+  } catch (err) {
+    console.error('Home status call failed:', err);
   }
 
   await client.close();
@@ -61,6 +60,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error('Analyzer error:', err);
+  console.error('Home status tester error:', err);
   process.exit(1);
 });

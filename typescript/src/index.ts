@@ -13,14 +13,18 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import dotenv from 'dotenv';
 import axios from 'axios';
+import { createRequire } from 'module';
 import { FibaroClient, FibaroDevice, FibaroIcon, FibaroIconsResponse } from './fibaro-client.js';
+
+const require = createRequire(import.meta.url);
+const pkg = require('../package.json');
 
 // Load environment variables
 dotenv.config();
 
 // Check for version flag
 if (process.argv.includes('--version') || process.argv.includes('-v')) {
-  console.log('1.0.8');
+  console.log(pkg.version);
   process.exit(0);
 }
 
@@ -500,6 +504,14 @@ const tools: any[] = [
       },
     ],
   },
+  {
+    name: 'get_home_status',
+    description: 'Get a summary of the home status including active devices, breached sensors, weather, and camera analyses.',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+    },
+  },
 ];
 
 // Helper to build structured JSON response content
@@ -566,6 +578,253 @@ function parseCameraAnalysis(text: string) {
   result.objects = Array.from(new Set(result.objects));
 
   return result;
+}
+
+class CameraAnalysisError extends Error {
+  code: string;
+
+  constructor(code: string, message: string) {
+    super(message);
+    this.name = 'CameraAnalysisError';
+    this.code = code;
+  }
+}
+
+interface CameraAnalysisData {
+  deviceId: number;
+  deviceName: string;
+  model: string;
+  cameraIP: string;
+  peopleCount: number;
+  people: string[];
+  objects: string[];
+  timeOfDay: string | null;
+  weather: string | null;
+  confidence: number | null;
+  rawAnalysisText: string;
+}
+
+interface CameraAnalysisEntry {
+  success: boolean;
+  code: string;
+  data: Partial<CameraAnalysisData> & { deviceId: number; deviceName: string };
+  message?: string;
+}
+
+function parseIdList(value?: string | null) {
+  if (!value) return null;
+  const ids = value
+    .split(',')
+    .map((part) => Number(part.trim()))
+    .filter((num) => !Number.isNaN(num));
+  return ids.length > 0 ? new Set(ids) : null;
+}
+
+function isCameraDevice(device: FibaroDevice) {
+  const type = (device.type || '').toLowerCase();
+  return type.includes('camera');
+}
+
+function cameraSkipReason(
+  device: FibaroDevice,
+  includeSet: Set<number> | null,
+  excludeSet: Set<number> | null
+): string | null {
+  if (includeSet && !includeSet.has(device.id)) {
+    return 'Camera not in HOME_STATUS_CAMERA_INCLUDE list';
+  }
+  if (excludeSet && excludeSet.has(device.id)) {
+    return 'Camera excluded via HOME_STATUS_CAMERA_EXCLUDE';
+  }
+  if (device.enabled === false) {
+    return 'Camera device is disabled in Fibaro';
+  }
+  if (device.visible === false) {
+    return 'Camera device is hidden in Fibaro';
+  }
+  const props = device.properties || {};
+  if (!props.ip) {
+    return 'Camera lacks an IP address configuration';
+  }
+  const deadValue = String(props.dead ?? '').toLowerCase();
+  if (deadValue === 'true' || deadValue === '1') {
+    return 'Camera is reported as dead/offline by Fibaro';
+  }
+  return null;
+}
+
+async function analyzeCameraDevicesWithConcurrency(
+  devices: FibaroDevice[],
+  options: { prompt: string; model: string; ollamaUrl: string },
+  concurrency: number
+): Promise<CameraAnalysisEntry[]> {
+  const normalizedConcurrency = Math.max(1, Math.min(concurrency, devices.length || 1));
+  const results: CameraAnalysisEntry[] = [];
+  let index = 0;
+
+  async function worker() {
+    while (true) {
+      const currentIndex = index++;
+      if (currentIndex >= devices.length) {
+        return;
+      }
+      const device = devices[currentIndex];
+
+      try {
+        const { structured } = await analyzeCameraDevice(device, options);
+        results.push({ success: true, code: 'OK', data: structured });
+      } catch (error: any) {
+        if (error instanceof CameraAnalysisError) {
+          results.push({
+            success: false,
+            code: error.code,
+            message: error.message,
+            data: { deviceId: device.id, deviceName: device.name },
+          });
+        } else {
+          results.push({
+            success: false,
+            code: 'UNKNOWN_CAMERA_ERROR',
+            message: error?.message || String(error),
+            data: { deviceId: device.id, deviceName: device.name },
+          });
+        }
+      }
+    }
+  }
+
+  const workerCount = Math.min(normalizedConcurrency, devices.length || 1);
+  const workers = Array.from({ length: workerCount }, () => worker());
+  await Promise.all(workers);
+
+  return results;
+}
+
+async function analyzeCameraDevice(
+  device: FibaroDevice,
+  options: { prompt: string; model: string; ollamaUrl: string }
+): Promise<{ structured: CameraAnalysisData; rawText: string }> {
+  const { prompt, model, ollamaUrl } = options;
+  const cameraType = (device.type || '').toLowerCase();
+
+  if (!cameraType.includes('camera')) {
+    throw new CameraAnalysisError(
+      'NOT_A_CAMERA',
+      `Device ${device.id} is not a camera (type: ${device.type || 'unknown'})`
+    );
+  }
+
+  const properties = device.properties || {};
+  const ip = properties.ip || '';
+  let jpgPath = properties.jpgPath || '/image/jpeg.cgi';
+
+  if (!ip) {
+    throw new CameraAnalysisError(
+      'NO_CAMERA_IP',
+      `Camera device ${device.id} has no IP address configured`
+    );
+  }
+
+  if (!jpgPath.startsWith('/')) {
+    jpgPath = '/' + jpgPath;
+  }
+
+  const username = properties.username || 'admin';
+  const password = properties.password || '';
+  const useHttps = (properties.httpsEnabled || 'false').toLowerCase() === 'true';
+  const protocol = useHttps ? 'https' : 'http';
+  const maskedPassword = '*'.repeat(password.length);
+  const cameraUrl = `${protocol}://${username}:${password}@${ip}${jpgPath}`;
+  const maskedCameraUrl = `${protocol}://${username}:${maskedPassword}@${ip}${jpgPath}`;
+
+  console.error(`Camera ${device.id} properties IP=${ip}`);
+  console.error(`Fetching snapshot from camera ${device.id} at ${ip}...`);
+  console.error(`Camera URL: ${maskedCameraUrl}`);
+  console.error(`Ollama URL: ${ollamaUrl}`);
+
+  let snapshotResponse;
+  try {
+    snapshotResponse = await axios.get(cameraUrl, {
+      responseType: 'arraybuffer',
+      timeout: 10000,
+    });
+  } catch (error: any) {
+    if (error?.code === 'ECONNREFUSED') {
+      throw new CameraAnalysisError(
+        'CAMERA_CONNECT_ERROR',
+        `Could not connect to camera ${device.id} at ${ip}. ${error.message || ''}`.trim()
+      );
+    }
+    if (error?.code === 'ETIMEDOUT') {
+      throw new CameraAnalysisError('TIMEOUT', 'Camera snapshot request timed out.');
+    }
+    throw new CameraAnalysisError(
+      'CAMERA_SNAPSHOT_ERROR',
+      `Failed to fetch snapshot from camera ${device.id}: ${error?.message || String(error)}`
+    );
+  }
+
+  const imageBase64 = Buffer.from(snapshotResponse.data).toString('base64');
+
+  console.error(`Snapshot captured, analyzing with Ollama...`);
+
+  const ollamaPayload = {
+    model,
+    prompt,
+    images: [imageBase64],
+    stream: false,
+  };
+
+  let ollamaResponse;
+  try {
+    ollamaResponse = await axios.post(`${ollamaUrl}/api/generate`, ollamaPayload, {
+      timeout: 120000,
+    });
+  } catch (error: any) {
+    const message = error?.message || String(error);
+    if (error?.code === 'ECONNREFUSED' || message.includes('ECONNREFUSED')) {
+      throw new CameraAnalysisError(
+        'OLLAMA_UNAVAILABLE',
+        `Could not connect to Ollama at ${ollamaUrl}. Ensure the service is running and the model '${model}' is installed.`
+      );
+    }
+    if (error?.code === 'ENOTFOUND' || message.includes('ENOTFOUND')) {
+      throw new CameraAnalysisError(
+        'OLLAMA_UNAVAILABLE',
+        `Could not resolve Ollama host at ${ollamaUrl}. Check the OLLAMA_URL setting.`
+      );
+    }
+    if (error?.code === 'ETIMEDOUT') {
+      throw new CameraAnalysisError('TIMEOUT', 'Ollama analysis timed out.');
+    }
+    if (error?.response) {
+      const status = error.response.status;
+      const data = typeof error.response.data === 'string' ? error.response.data : JSON.stringify(error.response.data);
+      throw new CameraAnalysisError(
+        'OLLAMA_ERROR',
+        `Ollama responded with status ${status}: ${data}`
+      );
+    }
+    throw new CameraAnalysisError('UNKNOWN_CAMERA_ERROR', `Error analyzing camera snapshot: ${message}`);
+  }
+
+  const analysis = ollamaResponse.data.response || 'No response from Ollama';
+  const heur = parseCameraAnalysis(analysis);
+  const structured: CameraAnalysisData = {
+    deviceId: device.id,
+    deviceName: device.name,
+    model,
+    cameraIP: ip,
+    peopleCount: heur.peopleCount !== null ? heur.peopleCount : 0,
+    people: heur.people || [],
+    objects: heur.objects || [],
+    timeOfDay: heur.timeOfDay,
+    weather: heur.weather,
+    confidence: null,
+    rawAnalysisText: analysis,
+  };
+
+  return { structured, rawText: analysis };
 }
 
 // Map Fibaro device types / icon names to simple categories
@@ -844,6 +1103,115 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       };
     }
 
+    if (name === 'get_home_status') {
+      const model = process.env.HOME_STATUS_CAMERA_MODEL || 'llama3.2-vision';
+      const ollamaUrl = process.env.OLLAMA_URL || 'http://localhost:11434';
+      const cameraPrompt =
+        'Provide a concise security-focused description of this camera image. Highlight people, vehicles, open gates/doors, and notable weather or lighting.';
+
+      const [status, devices] = await Promise.all([
+        fibaroClient.getHomeStatus(),
+        fibaroClient.getDevices(),
+      ]);
+
+      const includeSet = parseIdList(process.env.HOME_STATUS_CAMERA_INCLUDE || null);
+      const excludeSet = parseIdList(process.env.HOME_STATUS_CAMERA_EXCLUDE || null);
+      const cameraAnalyses: CameraAnalysisEntry[] = [];
+      const analyzableCameras: FibaroDevice[] = [];
+
+      devices.forEach((device) => {
+        if (!isCameraDevice(device)) {
+          return;
+        }
+
+        const skipReason = cameraSkipReason(device, includeSet, excludeSet);
+        if (skipReason) {
+          cameraAnalyses.push({
+            success: false,
+            code: 'CAMERA_SKIPPED',
+            message: skipReason,
+            data: {
+              deviceId: device.id,
+              deviceName: device.name,
+            },
+          });
+          return;
+        }
+
+        analyzableCameras.push(device);
+      });
+
+      console.error(`Analyzing ${analyzableCameras.length} cameras for home status (skipped ${cameraAnalyses.length}).`);
+
+      const requestedConcurrency = parseInt(process.env.HOME_STATUS_CAMERA_CONCURRENCY || '0', 10);
+      const effectiveConcurrency = requestedConcurrency > 0 ? requestedConcurrency : analyzableCameras.length || 1;
+      const analyzedResults: CameraAnalysisEntry[] = analyzableCameras.length
+        ? await analyzeCameraDevicesWithConcurrency(
+            analyzableCameras,
+            { prompt: cameraPrompt, model, ollamaUrl },
+            effectiveConcurrency
+          )
+        : [];
+
+      cameraAnalyses.push(...analyzedResults);
+
+      const successCount = cameraAnalyses.filter((c) => c.success).length;
+      const totalCameras = cameraAnalyses.length;
+      const weatherSummary = status.weather
+        ? status.weather.ConditionName || status.weather.condition || status.weather.weatherCondition || 'Unknown'
+        : 'Unknown';
+      const weatherTemp = status.weather && (status.weather.Temperature ?? status.weather.temperature);
+
+      const summaryLines: string[] = [
+        `Weather: ${weatherSummary}${weatherTemp !== undefined ? ` (${weatherTemp}°C)` : ''}`,
+        `Active devices: ${status.activeDevices.length}`,
+        `Breached sensors: ${status.breachedSensors.length}`,
+        `Average indoor temperature: ${
+          status.temperature && status.temperature.average !== null
+            ? `${status.temperature.average}°C`
+            : 'N/A'
+        }`,
+        totalCameras > 0
+          ? `Camera snapshots analyzed: ${successCount}/${totalCameras}`
+          : 'Camera snapshots analyzed: 0 (no cameras detected)',
+      ];
+
+      if (cameraAnalyses.length > 0) {
+        summaryLines.push('\nCamera Highlights:');
+        cameraAnalyses.forEach((entry) => {
+          const cameraLabel = `${entry.data.deviceName} (#${entry.data.deviceId})`;
+          if (entry.success && entry.data.rawAnalysisText) {
+            const data = entry.data as CameraAnalysisData;
+            const peopleText = data.peopleCount && data.peopleCount > 0 ? `${data.peopleCount} person(er)` : 'ingen personer';
+            const objectText = data.objects && data.objects.length > 0 ? data.objects.join(', ') : 'ingen spesifikke objekter';
+            const weatherText = data.weather ? `, vær: ${data.weather}` : '';
+            const timeText = data.timeOfDay ? `, tid: ${data.timeOfDay}` : '';
+            summaryLines.push(`- ${cameraLabel}: ${peopleText}, objekter: ${objectText}${weatherText}${timeText}.`);
+          } else {
+            summaryLines.push(
+              `- ${cameraLabel}: kunne ikke analyseres (${entry.code}${entry.message ? ` - ${entry.message}` : ''}).`
+            );
+          }
+        });
+      }
+
+      const enrichedStatus = {
+        ...status,
+        cameraAnalyses,
+        cameraModel: model,
+      };
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: summaryLines.join('\n'),
+          },
+        ],
+        structuredContent: buildJsonContent(enrichedStatus),
+      };
+    }
+
     if (name === 'get_consumption') {
       try {
         const consumption = await fibaroClient.getConsumption();
@@ -1049,92 +1417,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const ollamaUrl = process.env.OLLAMA_URL || 'http://localhost:11434';
 
       try {
-        // Get camera device info
         const device = await fibaroClient.getDevice(deviceId);
-        const cameraType = device.type || '';
-
-        // Check if it's a camera device
-        if (!cameraType.toLowerCase().includes('camera')) {
-          const msg = `Device ${deviceId} is not a camera (type: ${cameraType})`;
-          return {
-            content: [
-              { type: 'text', text: `Error: ${msg}` },
-            ],
-            structuredContent: buildErrorContent(msg, 'NOT_A_CAMERA'),
-            isError: true,
-          };
-        }
-
-        // Get camera properties
-        const properties = device.properties || {};
-        const ip = properties.ip || '';
-        let jpgPath = properties.jpgPath || '/image/jpeg.cgi';
-        
-        // Ensure jpgPath starts with '/' for proper URL construction
-        if (!jpgPath.startsWith('/')) {
-          jpgPath = '/' + jpgPath;
-        }
-        
-        const username = properties.username || 'admin';
-        const password = properties.password || '';
-        const useHttps = (properties.httpsEnabled || 'false').toLowerCase() === 'true';
-
-        if (!ip) {
-          const msg = `Camera device ${deviceId} has no IP address configured`;
-          return {
-            content: [
-              { type: 'text', text: `Error: ${msg}` },
-            ],
-            structuredContent: buildErrorContent(msg, 'NO_CAMERA_IP'),
-            isError: true,
-          };
-        }
-
-        // Construct camera URL
-        const protocol = useHttps ? 'https' : 'http';
-        const cameraUrl = `${protocol}://${username}:${password}@${ip}${jpgPath}`;
-
-        // Download snapshot using axios
-        console.error(`Fetching snapshot from camera ${deviceId} at ${ip}...`);
-        const snapshotResponse = await axios.get(cameraUrl, {
-          responseType: 'arraybuffer',
-          timeout: 10000,
-        });
-
-        // Encode image to base64
-        const imageBase64 = Buffer.from(snapshotResponse.data).toString('base64');
-
-        console.error(`Snapshot captured, analyzing with Ollama...`);
-
-        // Send to Ollama
-        const ollamaPayload = {
-          model: model,
-          prompt: prompt,
-          images: [imageBase64],
-          stream: false,
-        };
-
-        const ollamaResponse = await axios.post(`${ollamaUrl}/api/generate`, ollamaPayload, {
-          timeout: 120000,
-        });
-
-        const analysis = ollamaResponse.data.response || 'No response from Ollama';
-
-        // Attempt to parse useful structured fields from the free-text analysis
-        const heur = parseCameraAnalysis(analysis);
-        const structured = {
-          deviceId,
-          deviceName: device.name,
+        const { structured, rawText } = await analyzeCameraDevice(device, {
+          prompt,
           model,
-          cameraIP: ip,
-          peopleCount: heur.peopleCount !== null ? heur.peopleCount : 0,
-          people: heur.people || [],
-          objects: heur.objects || [],
-          timeOfDay: heur.timeOfDay,
-          weather: heur.weather,
-          confidence: null,
-          rawAnalysisText: analysis,
-        };
+          ollamaUrl,
+        });
         return {
           content: [
             {
@@ -1142,30 +1430,29 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               text:
                 `Camera Analysis for Device ${deviceId} (${device.name}):\n` +
                 `${'='.repeat(60)}\n` +
-                `Camera IP: ${ip}\n` +
+                `Camera IP: ${structured.cameraIP}\n` +
                 `Model: ${model}\n` +
                 `${'='.repeat(60)}\n\n` +
-                `${analysis}`,
+                `${rawText}`,
             },
           ],
           structuredContent: buildJsonContent({ success: true, code: 'OK', data: structured }),
         };
       } catch (error: any) {
-        // Structured error handling
-        if (error && (error.code === 'ECONNREFUSED' || (error.message && error.message.includes('connect ECONNREFUSED')))) {
-          if (error.message && error.message.includes('11434')) {
-            const msg = `Could not connect to Ollama at ${ollamaUrl}. Make sure Ollama is running (ollama serve) and the model '${model}' is installed (ollama pull ${model})`;
-            return { content: [{ type: 'text', text: `Error: ${msg}` }], structuredContent: buildErrorContent(msg, 'OLLAMA_UNAVAILABLE'), isError: true };
-          }
-          const msg = `Could not connect to camera. ${error.message || String(error)}`;
-          return { content: [{ type: 'text', text: `Error: ${msg}` }], structuredContent: buildErrorContent(msg, 'CAMERA_CONNECT_ERROR'), isError: true };
-        } else if (error && error.code === 'ETIMEDOUT') {
-          const msg = 'Request timed out. Camera might be offline or Ollama is too slow.';
-          return { content: [{ type: 'text', text: `Error: ${msg}` }], structuredContent: buildErrorContent(msg, 'TIMEOUT'), isError: true };
-        } else {
-          const msg = `Error analyzing camera snapshot: ${error && error.message ? error.message : String(error)}`;
-          return { content: [{ type: 'text', text: msg }], structuredContent: buildErrorContent(msg, 'UNKNOWN_CAMERA_ERROR'), isError: true };
+        if (error instanceof CameraAnalysisError) {
+          const msg = error.message;
+          return {
+            content: [{ type: 'text', text: `Error: ${msg}` }],
+            structuredContent: buildErrorContent(msg, error.code),
+            isError: true,
+          };
         }
+        const msg = `Error analyzing camera snapshot: ${error && error.message ? error.message : String(error)}`;
+        return {
+          content: [{ type: 'text', text: msg }],
+          structuredContent: buildErrorContent(msg, 'UNKNOWN_CAMERA_ERROR'),
+          isError: true,
+        };
       }
     }
 

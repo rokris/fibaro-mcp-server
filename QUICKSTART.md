@@ -98,8 +98,8 @@ Vis meg alle rom
 ## Neste steg
 
 - 💻 Se [VSCODE_CONFIG.md](./VSCODE_CONFIG.md) for VS Code konfigurasjon
-- � Se [CAMERA_ANALYSIS.md](./CAMERA_ANALYSIS.md) for kamera AI-analyse
-- 📦 Se [typescript/README.md](./typescript/README.md) for utvikler-dokumentasjon
+- 🎥 Se [CAMERA_ANALYSIS.md](./CAMERA_ANALYSIS.md) for å sette opp AI-kameraanalyse
+- 📖 Se [README.md](./README.md) for full dokumentasjon
 
 ## Vanlige problemer
 

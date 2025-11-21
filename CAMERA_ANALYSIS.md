@@ -35,9 +35,19 @@ The Fibaro MCP server includes integrated AI vision analysis for IP cameras usin
 
 ## Usage
 
-### Via GitHub Copilot Chat
+### 1. Automatic Analysis in `get_home_status`
 
-The `analyze_camera_snapshot` tool is available through the Fibaro MCP server:
+The `get_home_status` tool now automatically includes AI analysis of your cameras. When you ask "Hvordan står det til hjemme?", the server will:
+
+1.  Fetch weather and device status from Fibaro.
+2.  Identify available cameras.
+3.  Filter cameras based on your configuration (see below).
+4.  Analyze snapshots from each camera using Ollama (concurrently).
+5.  Return a comprehensive status report including visual descriptions.
+
+### 2. Manual Analysis via `analyze_camera_snapshot`
+
+You can also analyze specific cameras on demand:
 
 **Parameters:**
 - `device_id` (required): The camera device ID from your Fibaro system
@@ -48,6 +58,24 @@ The `analyze_camera_snapshot` tool is available through the Fibaro MCP server:
 - "Analyze camera 87" (Garasjekamera)
 - "What do you see on camera 342?" (Hagekamera)
 - "Check camera 176 for any people" (Terrassekamera)
+
+## Configuration
+
+You can fine-tune the camera analysis behavior using environment variables in your MCP configuration:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `OLLAMA_URL` | URL to your local Ollama instance | `http://localhost:11434` |
+| `HOME_STATUS_CAMERA_CONCURRENCY` | Number of cameras to analyze in parallel. Lower this if you experience timeouts. | `2` |
+| `HOME_STATUS_CAMERA_INCLUDE` | Comma-separated list of camera IDs to include. If set, ONLY these cameras are analyzed. | (All enabled cameras) |
+| `HOME_STATUS_CAMERA_EXCLUDE` | Comma-separated list of camera IDs to skip. | (None) |
+| `HOME_STATUS_TEST_TIMEOUT` | Timeout (in ms) for each camera analysis request. | `30000` |
+
+### Robustness & Error Handling
+
+- **Dynamic Filtering:** The server automatically skips cameras that are marked as `dead` (offline) or disabled in Fibaro.
+- **Concurrency Control:** To prevent overloading your local Ollama instance, requests are queued and processed in batches (controlled by `HOME_STATUS_CAMERA_CONCURRENCY`).
+- **Graceful Degradation:** If a camera fails to analyze (timeout or error), it is skipped, and the rest of the home status report is returned without interruption. The error will be noted in the response.
 - "Describe the scene at camera 341" (Inngangskamera)
 
 ### Via Standalone Test Script
