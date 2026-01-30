@@ -368,6 +368,21 @@ export class FibaroClient {
         ? temperatures.reduce((sum, t) => sum + (t.value || 0), 0) / temperatures.length
         : null;
 
+    const humidities = devices
+      .filter((d) => d.type && d.type.toLowerCase().includes('humidity'))
+      .map((d) => ({
+        id: d.id,
+        name: d.name,
+        value: d.properties ? parseFloat(d.properties.value) : null,
+        roomID: d.roomID,
+      }))
+      .filter((h) => h.value !== null && !isNaN(h.value));
+
+    const avgHumidity =
+      humidities.length > 0
+        ? humidities.reduce((sum, h) => sum + (h.value || 0), 0) / humidities.length
+        : null;
+
     // Map room names to IDs for easier lookup
     const roomMap = new Map(rooms.map((r) => [r.id, r.name]));
 
@@ -391,6 +406,14 @@ export class FibaroClient {
           name: t.name,
           value: t.value,
           room: roomMap.get(t.roomID) || 'Unknown',
+        })),
+      },
+      humidity: {
+        average: avgHumidity ? parseFloat(avgHumidity.toFixed(1)) : null,
+        sensors: humidities.map((h) => ({
+          name: h.name,
+          value: h.value,
+          room: roomMap.get(h.roomID) || 'Unknown',
         })),
       },
     };

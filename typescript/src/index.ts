@@ -503,7 +503,6 @@ const tools: any[] = [
         output: { deviceId: 341, deviceName: 'Entrance', model: 'llama3.2-vision', peopleCount: 0, people: [], objects: [], rawAnalysisText: 'No people visible.' },
       },
     ],
-<<<<<<< HEAD
   },
   {
     name: 'get_home_status',
@@ -512,8 +511,6 @@ const tools: any[] = [
       type: 'object',
       properties: {},
     },
-=======
->>>>>>> origin/master
   },
 ];
 
@@ -583,7 +580,6 @@ function parseCameraAnalysis(text: string) {
   return result;
 }
 
-<<<<<<< HEAD
 class CameraAnalysisError extends Error {
   code: string;
 
@@ -831,8 +827,6 @@ async function analyzeCameraDevice(
   return { structured, rawText: analysis };
 }
 
-=======
->>>>>>> origin/master
 // Map Fibaro device types / icon names to simple categories
 function mapDeviceCategory(device: FibaroDevice, icons: FibaroIconsResponse = []) {
   const t = (device.type || '').toLowerCase();
@@ -1109,7 +1103,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       };
     }
 
-<<<<<<< HEAD
     if (name === 'get_home_status') {
       const model = process.env.HOME_STATUS_CAMERA_MODEL || 'llama3.2-vision';
       const ollamaUrl = process.env.OLLAMA_URL || 'http://localhost:11434';
@@ -1219,8 +1212,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       };
     }
 
-=======
->>>>>>> origin/master
     if (name === 'get_consumption') {
       try {
         const consumption = await fibaroClient.getConsumption();
@@ -1427,98 +1418,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       try {
         const device = await fibaroClient.getDevice(deviceId);
-<<<<<<< HEAD
         const { structured, rawText } = await analyzeCameraDevice(device, {
           prompt,
           model,
           ollamaUrl,
         });
-=======
-        const cameraType = device.type || '';
-
-        // Check if it's a camera device
-        if (!cameraType.toLowerCase().includes('camera')) {
-          const msg = `Device ${deviceId} is not a camera (type: ${cameraType})`;
-          return {
-            content: [
-              { type: 'text', text: `Error: ${msg}` },
-            ],
-            structuredContent: buildErrorContent(msg, 'NOT_A_CAMERA'),
-            isError: true,
-          };
-        }
-
-        // Get camera properties
-        const properties = device.properties || {};
-        const ip = properties.ip || '';
-        let jpgPath = properties.jpgPath || '/image/jpeg.cgi';
-        
-        // Ensure jpgPath starts with '/' for proper URL construction
-        if (!jpgPath.startsWith('/')) {
-          jpgPath = '/' + jpgPath;
-        }
-        
-        const username = properties.username || 'admin';
-        const password = properties.password || '';
-        const useHttps = (properties.httpsEnabled || 'false').toLowerCase() === 'true';
-
-        if (!ip) {
-          const msg = `Camera device ${deviceId} has no IP address configured`;
-          return {
-            content: [
-              { type: 'text', text: `Error: ${msg}` },
-            ],
-            structuredContent: buildErrorContent(msg, 'NO_CAMERA_IP'),
-            isError: true,
-          };
-        }
-
-        // Construct camera URL
-        const protocol = useHttps ? 'https' : 'http';
-        const cameraUrl = `${protocol}://${username}:${password}@${ip}${jpgPath}`;
-
-        // Download snapshot using axios
-        console.error(`Fetching snapshot from camera ${deviceId} at ${ip}...`);
-        const snapshotResponse = await axios.get(cameraUrl, {
-          responseType: 'arraybuffer',
-          timeout: 10000,
-        });
-
-        // Encode image to base64
-        const imageBase64 = Buffer.from(snapshotResponse.data).toString('base64');
-
-        console.error(`Snapshot captured, analyzing with Ollama...`);
-
-        // Send to Ollama
-        const ollamaPayload = {
-          model: model,
-          prompt: prompt,
-          images: [imageBase64],
-          stream: false,
-        };
-
-        const ollamaResponse = await axios.post(`${ollamaUrl}/api/generate`, ollamaPayload, {
-          timeout: 120000,
-        });
-
-        const analysis = ollamaResponse.data.response || 'No response from Ollama';
-
-        // Attempt to parse useful structured fields from the free-text analysis
-        const heur = parseCameraAnalysis(analysis);
-        const structured = {
-          deviceId,
-          deviceName: device.name,
-          model,
-          cameraIP: ip,
-          peopleCount: heur.peopleCount !== null ? heur.peopleCount : 0,
-          people: heur.people || [],
-          objects: heur.objects || [],
-          timeOfDay: heur.timeOfDay,
-          weather: heur.weather,
-          confidence: null,
-          rawAnalysisText: analysis,
-        };
->>>>>>> origin/master
         return {
           content: [
             {
@@ -1535,7 +1439,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           structuredContent: buildJsonContent({ success: true, code: 'OK', data: structured }),
         };
       } catch (error: any) {
-<<<<<<< HEAD
         if (error instanceof CameraAnalysisError) {
           const msg = error.message;
           return {
@@ -1543,22 +1446,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             structuredContent: buildErrorContent(msg, error.code),
             isError: true,
           };
-=======
-        // Structured error handling
-        if (error && (error.code === 'ECONNREFUSED' || (error.message && error.message.includes('connect ECONNREFUSED')))) {
-          if (error.message && error.message.includes('11434')) {
-            const msg = `Could not connect to Ollama at ${ollamaUrl}. Make sure Ollama is running (ollama serve) and the model '${model}' is installed (ollama pull ${model})`;
-            return { content: [{ type: 'text', text: `Error: ${msg}` }], structuredContent: buildErrorContent(msg, 'OLLAMA_UNAVAILABLE'), isError: true };
-          }
-          const msg = `Could not connect to camera. ${error.message || String(error)}`;
-          return { content: [{ type: 'text', text: `Error: ${msg}` }], structuredContent: buildErrorContent(msg, 'CAMERA_CONNECT_ERROR'), isError: true };
-        } else if (error && error.code === 'ETIMEDOUT') {
-          const msg = 'Request timed out. Camera might be offline or Ollama is too slow.';
-          return { content: [{ type: 'text', text: `Error: ${msg}` }], structuredContent: buildErrorContent(msg, 'TIMEOUT'), isError: true };
-        } else {
-          const msg = `Error analyzing camera snapshot: ${error && error.message ? error.message : String(error)}`;
-          return { content: [{ type: 'text', text: msg }], structuredContent: buildErrorContent(msg, 'UNKNOWN_CAMERA_ERROR'), isError: true };
->>>>>>> origin/master
         }
         const msg = `Error analyzing camera snapshot: ${error && error.message ? error.message : String(error)}`;
         return {
