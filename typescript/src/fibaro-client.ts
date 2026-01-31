@@ -346,6 +346,14 @@ export class FibaroClient {
       // Check for motion/door sensors that are breached/active
       if (d.properties && (d.properties.value === 'true' || d.properties.value > 0)) {
         const type = (d.type || '').toLowerCase();
+        const name = (d.name || '').toLowerCase();
+        
+        // Exclude door locks - they report "true" when locked (secure state)
+        // Door locks should not be treated as "breached" sensors
+        if (type.includes('lock') || name.includes('lås') || name.includes('lock')) {
+          return false;
+        }
+        
         if (type.includes('motion') || type.includes('door') || type.includes('window')) {
           return true;
         }
