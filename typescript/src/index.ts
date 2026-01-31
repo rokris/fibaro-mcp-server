@@ -742,25 +742,51 @@ async function analyzeCameraDevice(
   console.error(`Camera URL: ${maskedCameraUrl}`);
   console.error(`Ollama URL: ${ollamaUrl}`);
 
+  // Retry logic for snapshot fetching
   let snapshotResponse;
-  try {
-    snapshotResponse = await axios.get(cameraUrl, {
-      responseType: 'arraybuffer',
-      timeout: 10000,
-    });
-  } catch (error: any) {
-    if (error?.code === 'ECONNREFUSED') {
-      throw new CameraAnalysisError(
-        'CAMERA_CONNECT_ERROR',
-        `Could not connect to camera ${device.id} at ${ip}. ${error.message || ''}`.trim()
-      );
+  const maxRetries = 3;
+  let lastError: any;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.error(`Snapshot attempt ${attempt}/${maxRetries} for camera ${device.id}...`);
+      snapshotResponse = await axios.get(cameraUrl, {
+        responseType: 'arraybuffer',
+        timeout: 30000, // Increased from 10s to 30s
+      });
+      console.error(`Snapshot successfully fetched for camera ${device.id}`);
+      break; // Success, exit retry loop
+    } catch (error: any) {
+      lastError = error;
+      console.error(`Snapshot attempt ${attempt} failed for camera ${device.id}: ${error?.message}`);
+      
+      if (error?.code === 'ECONNREFUSED') {
+        // Don't retry connection refused errors
+        throw new CameraAnalysisError(
+          'CAMERA_CONNECT_ERROR',
+          `Could not connect to camera ${device.id} at ${ip}. ${error.message || ''}`.trim()
+        );
+      }
+      
+      if (attempt < maxRetries) {
+        // Exponential backoff: 2s, 4s, 8s
+        const delayMs = Math.pow(2, attempt) * 1000;
+        console.error(`Waiting ${delayMs}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
     }
-    if (error?.code === 'ETIMEDOUT') {
-      throw new CameraAnalysisError('TIMEOUT', 'Camera snapshot request timed out.');
+  }
+  
+  if (!snapshotResponse) {
+    if (lastError?.code === 'ETIMEDOUT') {
+      throw new CameraAnalysisError(
+        'TIMEOUT',
+        `Camera snapshot request timed out after ${maxRetries} attempts.`
+      );
     }
     throw new CameraAnalysisError(
       'CAMERA_SNAPSHOT_ERROR',
-      `Failed to fetch snapshot from camera ${device.id}: ${error?.message || String(error)}`
+      `Failed to fetch snapshot from camera ${device.id} after ${maxRetries} attempts: ${lastError?.message || String(lastError)}`
     );
   }
 
@@ -775,37 +801,68 @@ async function analyzeCameraDevice(
     stream: false,
   };
 
+  // Retry logic for Ollama analysis
   let ollamaResponse;
-  try {
-    ollamaResponse = await axios.post(`${ollamaUrl}/api/generate`, ollamaPayload, {
-      timeout: 120000,
-    });
-  } catch (error: any) {
-    const message = error?.message || String(error);
-    if (error?.code === 'ECONNREFUSED' || message.includes('ECONNREFUSED')) {
+  const maxOllamaRetries = 2;
+  let lastOllamaError: any;
+  
+  for (let attempt = 1; attempt <= maxOllamaRetries; attempt++) {
+    try {
+      console.error(`Ollama analysis attempt ${attempt}/${maxOllamaRetries} for camera ${device.id}...`);
+      ollamaResponse = await axios.post(`${ollamaUrl}/api/generate`, ollamaPayload, {
+        timeout: 180000, // Increased from 120s to 180s (3 minutes)
+      });
+      console.error(`Ollama analysis completed for camera ${device.id}`);
+      break; // Success, exit retry loop
+    } catch (error: any) {
+      lastOllamaError = error;
+      const message = error?.message || String(error);
+      console.error(`Ollama attempt ${attempt} failed for camera ${device.id}: ${message}`);
+      
+      // Don't retry connection errors
+      if (error?.code === 'ECONNREFUSED' || message.includes('ECONNREFUSED')) {
+        throw new CameraAnalysisError(
+          'OLLAMA_UNAVAILABLE',
+          `Could not connect to Ollama at ${ollamaUrl}. Ensure the service is running and the model '${model}' is installed.`
+        );
+      }
+      if (error?.code === 'ENOTFOUND' || message.includes('ENOTFOUND')) {
+        throw new CameraAnalysisError(
+          'OLLAMA_UNAVAILABLE',
+          `Could not resolve Ollama host at ${ollamaUrl}. Check the OLLAMA_URL setting.`
+        );
+      }
+      
+      // Handle non-timeout errors immediately
+      if (error?.response) {
+        const status = error.response.status;
+        const data = typeof error.response.data === 'string' ? error.response.data : JSON.stringify(error.response.data);
+        throw new CameraAnalysisError(
+          'OLLAMA_ERROR',
+          `Ollama responded with status ${status}: ${data}`
+        );
+      }
+      
+      // Retry on timeout
+      if (attempt < maxOllamaRetries && error?.code === 'ETIMEDOUT') {
+        const delayMs = 5000; // 5 second delay before retry
+        console.error(`Waiting ${delayMs}ms before Ollama retry...`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
+  }
+  
+  if (!ollamaResponse) {
+    if (lastOllamaError?.code === 'ETIMEDOUT') {
       throw new CameraAnalysisError(
-        'OLLAMA_UNAVAILABLE',
-        `Could not connect to Ollama at ${ollamaUrl}. Ensure the service is running and the model '${model}' is installed.`
+        'TIMEOUT',
+        `Ollama analysis timed out after ${maxOllamaRetries} attempts.`
       );
     }
-    if (error?.code === 'ENOTFOUND' || message.includes('ENOTFOUND')) {
-      throw new CameraAnalysisError(
-        'OLLAMA_UNAVAILABLE',
-        `Could not resolve Ollama host at ${ollamaUrl}. Check the OLLAMA_URL setting.`
-      );
-    }
-    if (error?.code === 'ETIMEDOUT') {
-      throw new CameraAnalysisError('TIMEOUT', 'Ollama analysis timed out.');
-    }
-    if (error?.response) {
-      const status = error.response.status;
-      const data = typeof error.response.data === 'string' ? error.response.data : JSON.stringify(error.response.data);
-      throw new CameraAnalysisError(
-        'OLLAMA_ERROR',
-        `Ollama responded with status ${status}: ${data}`
-      );
-    }
-    throw new CameraAnalysisError('UNKNOWN_CAMERA_ERROR', `Error analyzing camera snapshot: ${message}`);
+    throw new CameraAnalysisError(
+      'UNKNOWN_CAMERA_ERROR',
+      `Error analyzing camera snapshot after ${maxOllamaRetries} attempts: ${lastOllamaError?.message || String(lastOllamaError)}`
+    );
   }
 
   const analysis = ollamaResponse.data.response || 'No response from Ollama';
