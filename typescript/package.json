@@ -1,6 +1,6 @@
 {
   "name": "fibaro-mcp-server",
-  "version": "1.0.16",
+  "version": "1.0.17",
   "description": "Model Context Protocol server for Fibaro Home Center 2 integration with AI assistants",
   "type": "module",
   "main": "dist/index.js",

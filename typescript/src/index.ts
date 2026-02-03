@@ -562,11 +562,19 @@ function parseCameraAnalysis(text: string) {
     }
   });
 
-  // Time of day heuristics
-  if (/morning|dawn|sunrise/.test(lower)) result.timeOfDay = 'morning';
-  else if (/afternoon|midday|noon/.test(lower)) result.timeOfDay = 'afternoon';
-  else if (/evening|dusk|sunset/.test(lower)) result.timeOfDay = 'evening';
-  else if (/night|dark/.test(lower)) result.timeOfDay = 'night';
+  // Time of day heuristics - be more specific to avoid false positives
+  // Look for explicit time of day phrases, not just color descriptors like "dark"
+  if (/\b(morning|dawn|sunrise|early morning|in the morning)\b/.test(lower)) {
+    result.timeOfDay = 'morning';
+  } else if (/\b(afternoon|midday|noon|mid-day|in the afternoon)\b/.test(lower)) {
+    result.timeOfDay = 'afternoon';
+  } else if (/\b(evening|dusk|sunset|twilight|in the evening)\b/.test(lower)) {
+    result.timeOfDay = 'evening';
+  } else if (/\b(night time|nighttime|at night|during the night|night scene)\b/.test(lower)) {
+    result.timeOfDay = 'night';
+  } else if (/\b(cloudy day|sunny day|clear day|overcast day|daytime|day time)\b/.test(lower)) {
+    result.timeOfDay = 'day';
+  }
 
   // Weather heuristics
   if (/rain|raining|wet|drizzle/.test(lower)) result.weather = 'rain';
